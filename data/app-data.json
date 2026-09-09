@@ -1,0 +1,481 @@
+{
+  "seedVersion": "16",
+  "transactions": [
+    {
+      "id": "s1-1",
+      "title": "dane",
+      "amount": 1000,
+      "category": "Borrow",
+      "date": "2026-09-01T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s1-2",
+      "title": "Food",
+      "amount": 120,
+      "category": "Food",
+      "date": "2026-09-01T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s1-3",
+      "title": "Beverages",
+      "amount": 60,
+      "category": "Beverages",
+      "date": "2026-09-01T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s1-4",
+      "title": "Food",
+      "amount": 35,
+      "category": "Food",
+      "date": "2026-09-01T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s1-5",
+      "title": "Beverages",
+      "amount": 85,
+      "category": "Beverages",
+      "date": "2026-09-01T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s2-1",
+      "title": "Transaction Fee",
+      "amount": 10,
+      "category": "Transaction Fee",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s2-2",
+      "title": "office",
+      "amount": 1000,
+      "category": "Borrow",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s2-3",
+      "title": "Food",
+      "amount": 55,
+      "category": "Food",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s2-4",
+      "title": "Trans",
+      "amount": 120,
+      "category": "Trans",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s2-5",
+      "title": "Sports",
+      "amount": 130,
+      "category": "Sports",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s2-6",
+      "title": "futsal",
+      "amount": 50,
+      "category": "Receipt",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s2-7",
+      "title": "Trans",
+      "amount": 120,
+      "category": "Trans",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s2-8",
+      "title": "sampanna",
+      "amount": 1000,
+      "category": "Borrow",
+      "date": "2026-09-02T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s3-1",
+      "title": "cash exchange",
+      "amount": 100,
+      "category": "Bills",
+      "date": "2026-09-03T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s3-2",
+      "title": "Food",
+      "amount": 120,
+      "category": "Food",
+      "date": "2026-09-03T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s3-3",
+      "title": "sashant",
+      "amount": 850,
+      "category": "Bills",
+      "date": "2026-09-03T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s3-4",
+      "title": "sashant",
+      "amount": 1000,
+      "category": "Receipt",
+      "date": "2026-09-03T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s3-5",
+      "title": "Beverages",
+      "amount": 85,
+      "category": "Beverages",
+      "date": "2026-09-03T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s4-1",
+      "title": "Food",
+      "amount": 120,
+      "category": "Food",
+      "date": "2026-09-04T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s5-1",
+      "title": "Trans",
+      "amount": 50,
+      "category": "Trans",
+      "date": "2026-09-05T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-cash"
+    },
+    {
+      "id": "s5-2",
+      "title": "Trans",
+      "amount": 70,
+      "category": "Trans",
+      "date": "2026-09-05T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s5-3",
+      "title": "Food",
+      "amount": 300,
+      "category": "Food",
+      "date": "2026-09-05T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s5-4",
+      "title": "Telephone",
+      "amount": 30,
+      "category": "Telephone",
+      "date": "2026-09-05T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s5-5",
+      "title": "After adjust: 91.72",
+      "amount": 10,
+      "category": "GLB",
+      "date": "2026-09-05T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s5-6",
+      "title": "cash exchange",
+      "amount": 100,
+      "category": "Borrow",
+      "date": "2026-09-05T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-cash"
+    },
+    {
+      "id": "s6-1",
+      "title": "Trans",
+      "amount": 80,
+      "category": "Trans",
+      "date": "2026-09-06T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s6-2",
+      "title": "Beverages",
+      "amount": 110,
+      "category": "Beverages",
+      "date": "2026-09-06T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s6-3",
+      "title": "hair cut",
+      "amount": 200,
+      "category": "Prop.Mgmt.",
+      "date": "2026-09-06T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s6-4",
+      "title": "Receipt",
+      "amount": 30,
+      "category": "Receipt",
+      "date": "2026-09-06T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s6-5",
+      "title": "Food",
+      "amount": 500,
+      "category": "Food",
+      "date": "2026-09-06T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s6-6",
+      "title": "sashant",
+      "amount": 1000,
+      "category": "Borrow",
+      "date": "2026-09-06T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s7-1",
+      "title": "After adjust: 5",
+      "amount": 45,
+      "category": "Cash",
+      "date": "2026-09-07T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-cash"
+    },
+    {
+      "id": "s7-2",
+      "title": "GLB",
+      "amount": 90,
+      "category": "GLB",
+      "date": "2026-09-07T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s7-3",
+      "title": "Beverages",
+      "amount": 55,
+      "category": "Beverages",
+      "date": "2026-09-07T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s8-1",
+      "title": "office",
+      "amount": 500,
+      "category": "Borrow",
+      "date": "2026-09-08T06:15:00.000Z",
+      "type": "income",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s8-2",
+      "title": "Transaction Fee",
+      "amount": 10,
+      "category": "Transaction Fee",
+      "date": "2026-09-08T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    },
+    {
+      "id": "s8-3",
+      "title": "Food",
+      "amount": 300,
+      "category": "Food",
+      "date": "2026-09-08T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-esewa"
+    }
+  ],
+  "wallets": [
+    {
+      "id": "w-esewa",
+      "name": "eSewa",
+      "initialBalance": 21.42,
+      "currentBalance": 21.42,
+      "createdAt": "2026-09-01T06:15:00.000Z",
+      "icon": "account-balance-wallet"
+    },
+    {
+      "id": "w-khalti",
+      "name": "Khalti",
+      "initialBalance": 0.35,
+      "currentBalance": 0.35,
+      "createdAt": "2026-09-01T06:15:00.000Z",
+      "icon": "currency-rupee"
+    },
+    {
+      "id": "w-cash",
+      "name": "Cash",
+      "initialBalance": 5,
+      "currentBalance": 5,
+      "createdAt": "2026-09-01T06:15:00.000Z",
+      "icon": "payments"
+    },
+    {
+      "id": "w-nabil",
+      "name": "Nabil",
+      "initialBalance": 0.74,
+      "currentBalance": 0.74,
+      "createdAt": "2026-09-01T06:15:00.000Z",
+      "icon": "account-balance"
+    },
+    {
+      "id": "w-global",
+      "name": "Global",
+      "initialBalance": 501.72,
+      "currentBalance": 501.72,
+      "createdAt": "2026-09-01T06:15:00.000Z",
+      "icon": "account-balance"
+    }
+  ],
+  "categories": [
+    {
+      "id": "1",
+      "name": "Food & Dining",
+      "icon": "restaurant",
+      "color": "#111111"
+    },
+    {
+      "id": "2",
+      "name": "Transport",
+      "icon": "directions-car",
+      "color": "#3F3F46"
+    },
+    {
+      "id": "3",
+      "name": "Shopping",
+      "icon": "shopping-bag",
+      "color": "#5F5F5F"
+    },
+    {
+      "id": "4",
+      "name": "Entertainment",
+      "icon": "movie",
+      "color": "#7F7F7F"
+    },
+    {
+      "id": "5",
+      "name": "Bills & Utilities",
+      "icon": "receipt",
+      "color": "#2B2B2B"
+    },
+    {
+      "id": "6",
+      "name": "Health",
+      "icon": "local-hospital",
+      "color": "#4B4B4B"
+    },
+    {
+      "id": "7",
+      "name": "Education",
+      "icon": "school",
+      "color": "#8B8B8B"
+    },
+    {
+      "id": "8",
+      "name": "Other",
+      "icon": "more-horiz",
+      "color": "#000000"
+    },
+    {
+      "id": "9",
+      "name": "Borrow",
+      "icon": "arrow-downward",
+      "color": "#8E8E8E"
+    },
+    {
+      "id": "10",
+      "name": "Khaja",
+      "icon": "lunch-dining",
+      "color": "#333333"
+    },
+    {
+      "id": "11",
+      "name": "Transaction Fee",
+      "icon": "receipt-long",
+      "color": "#A9A9A9"
+    },
+    {
+      "id": "12",
+      "name": "Credit",
+      "icon": "credit-card",
+      "color": "#6B6B6B"
+    },
+    {
+      "id": "13",
+      "name": "Drinks",
+      "icon": "local-drink",
+      "color": "#222222"
+    },
+    {
+      "id": "13-1",
+      "name": "chiya",
+      "icon": "local-cafe",
+      "color": "#6B4F3A",
+      "parentId": "13"
+    },
+    {
+      "id": "13-2",
+      "name": "cold drink",
+      "icon": "local-drink",
+      "color": "#3F84C5",
+      "parentId": "13"
+    },
+    {
+      "id": "13-3",
+      "name": "coke",
+      "icon": "local-drink",
+      "color": "#8C2F2F",
+      "parentId": "13"
+    }
+  ]
+}
