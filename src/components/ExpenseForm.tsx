@@ -256,7 +256,7 @@ const CategoryPickerField: React.FC<{
                     }
                   }}>
                   <MaterialIcons name="category" size={18} color={COLORS.textMuted} />
-                  <Text style={styles.categoryText}>Use "{parentName}" category</Text>
+                  <Text style={styles.categoryText}>Use &ldquo;{parentName}&rdquo; category</Text>
                 </TouchableOpacity>
               )}
               {(parentId ? subs : mains).map(category => {

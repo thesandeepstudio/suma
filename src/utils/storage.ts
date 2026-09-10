@@ -5,6 +5,30 @@ import appData from '../../data/app-data.json';
 
 const SEED_VERSION = appData.seedVersion;
 
+export const getUsername = async (): Promise<string> => {
+  try {
+    return (await AsyncStorage.getItem(STORAGE_KEYS.USERNAME)) || 'user';
+  } catch {
+    return 'user';
+  }
+};
+
+export const setUsername = async (name: string): Promise<void> => {
+  await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, name);
+};
+
+export const getCurrency = async (): Promise<string> => {
+  try {
+    return (await AsyncStorage.getItem(STORAGE_KEYS.CURRENCY)) || 'NPR';
+  } catch {
+    return 'NPR';
+  }
+};
+
+export const setCurrency = async (currency: string): Promise<void> => {
+  await AsyncStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
+};
+
 export const getExpenses = async (): Promise<Expense[]> => {
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
@@ -12,6 +36,23 @@ export const getExpenses = async (): Promise<Expense[]> => {
   } catch {
     return [];
   }
+};
+
+export const getTransactionCount = async (): Promise<number> => {
+  const expenses = await getExpenses();
+  return expenses.length;
+};
+
+export const clearAllData = async (): Promise<void> => {
+  await AsyncStorage.multiRemove([
+    STORAGE_KEYS.EXPENSES,
+    STORAGE_KEYS.CATEGORIES,
+    STORAGE_KEYS.WALLETS,
+    STORAGE_KEYS.BUDGET,
+    STORAGE_KEYS.SEED_VERSION,
+    STORAGE_KEYS.USERNAME,
+    STORAGE_KEYS.CURRENCY,
+  ]);
 };
 
 export const seedInitialData = async (): Promise<void> => {

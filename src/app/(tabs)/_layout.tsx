@@ -21,18 +21,18 @@ const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({
   color,
   focused,
 }) => {
-  const scale = useSharedValue(focused ? 1 : 0.85);
-  const translateY = useSharedValue(focused ? 0 : 4);
+  const scale = useSharedValue(focused ? 1 : 0.9);
+  const translateY = useSharedValue(focused ? 0 : 2);
 
   useEffect(() => {
-    scale.value = withSpring(focused ? 1 : 0.85, {
-      damping: 15,
-      stiffness: 200,
+    scale.value = withSpring(focused ? 1 : 0.9, {
+      damping: 20,
+      stiffness: 250,
       mass: 0.5,
     });
-    translateY.value = withSpring(focused ? 0 : 4, {
-      damping: 17,
-      stiffness: 220,
+    translateY.value = withSpring(focused ? 0 : 2, {
+      damping: 20,
+      stiffness: 250,
       mass: 0.5,
     });
   }, [focused, scale, translateY]);
@@ -43,7 +43,7 @@ const AnimatedTabIcon: React.FC<AnimatedTabIconProps> = ({
 
   return (
     <Animated.View style={animatedStyle}>
-      <MaterialIcons name={name} size={25} color={color} />
+      <MaterialIcons name={name} size={23} color={color} />
     </Animated.View>
   );
 };
@@ -54,11 +54,29 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: {
-          backgroundColor: COLORS.card,
-          borderTopColor: COLORS.border,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: 'transparent',
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          marginHorizontal: 0,
+          marginBottom: 0,
+          height: 64,
+          paddingTop: 10,
+          paddingBottom: 10,
+          shadowColor: '#000',
+          shadowOffset: {width: 0, height: 8},
+          shadowOpacity: 0.2,
+          shadowRadius: 20,
+          elevation: 12,
+          position: 'absolute',
+        },
+        tabBarActiveTintColor: '#111111',
+        tabBarInactiveTintColor: '#999999',
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+          letterSpacing: 0.3,
         },
         headerStyle: {backgroundColor: COLORS.background},
         headerShadowVisible: false,
@@ -80,7 +98,7 @@ export default function TabLayout() {
           title: 'Report',
           headerShown: false,
           tabBarIcon: ({color, focused}) => (
-            <AnimatedTabIcon name="assessment" color={color} focused={focused} />
+            <AnimatedTabIcon name="timeline" color={color} focused={focused} />
           ),
         }}
       />
@@ -111,19 +129,19 @@ export default function TabLayout() {
                 ]}>
                 <View
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    backgroundColor: COLORS.primary,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    backgroundColor: '#111111',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    shadowColor: COLORS.primary,
+                    shadowColor: '#000',
                     shadowOffset: {width: 0, height: 4},
-                    shadowOpacity: 0.4,
-                    shadowRadius: 8,
-                    elevation: 8,
+                    shadowOpacity: 0.25,
+                    shadowRadius: 10,
+                    elevation: 10,
                   }}>
-                  <MaterialIcons name="add" size={30} color={COLORS.white} />
+                  <MaterialIcons name="add" size={28} color="#FFFFFF" />
                 </View>
               </TouchableOpacity>
             );
@@ -136,7 +154,7 @@ export default function TabLayout() {
           title: 'Wallet',
           tabBarIcon: ({color, focused}) => (
             <AnimatedTabIcon
-              name="account-balance-wallet"
+              name="wallet"
               color={color}
               focused={focused}
             />
@@ -146,9 +164,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="me"
         options={{
-          title: 'Me',
+          title: 'Settings',
           tabBarIcon: ({color, focused}) => (
-            <AnimatedTabIcon name="person" color={color} focused={focused} />
+            <AnimatedTabIcon name="settings" color={color} focused={focused} />
           ),
         }}
       />

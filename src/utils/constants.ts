@@ -7,6 +7,8 @@ export const STORAGE_KEYS = {
   WALLETS: "@suma_wallets",
   BUDGET: "@suma_budget",
   SEED_VERSION: "@suma_seed_version",
+  USERNAME: "@suma_username",
+  CURRENCY: "@suma_currency",
 };
 
 export const DEFAULT_CATEGORIES: Category[] = appData.categories as Category[];

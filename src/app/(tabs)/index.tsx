@@ -21,6 +21,7 @@ import {
   getMonthlyTotal,
   getLastMonthTotal,
   getWalletTotal,
+  getUsername,
 } from "../../utils/storage";
 
 const DashboardScreen: React.FC = () => {
@@ -32,14 +33,16 @@ const DashboardScreen: React.FC = () => {
   const [lastMonthTotal, setLastMonthTotal] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [todayCount, setTodayCount] = useState(0);
+  const [username, setUsername] = useState('user');
 
   const loadData = useCallback(async () => {
-    const [exp, cats, total, wallet, lastTotal] = await Promise.all([
+    const [exp, cats, total, wallet, lastTotal, name] = await Promise.all([
       getExpenses(),
       getCategories(),
       getMonthlyTotal(),
       getWalletTotal(),
       getLastMonthTotal(),
+      getUsername(),
     ]);
     const dayKey = (dateStr: string) => {
       const d = new Date(dateStr);
@@ -53,6 +56,7 @@ const DashboardScreen: React.FC = () => {
     setMonthlyTotal(total);
     setWalletTotal(wallet);
     setLastMonthTotal(lastTotal);
+    setUsername(name);
   }, []);
 
   useFocusEffect(
@@ -109,7 +113,7 @@ const DashboardScreen: React.FC = () => {
       >
         <View style={styles.header}>
           <Text style={styles.heading}>Hello!</Text>
-          <Text style={styles.subheading}>user</Text>
+          <Text style={styles.subheading}>{username}</Text>
         </View>
 
         <BalanceCard
@@ -202,8 +206,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingHorizontal: 16,
     paddingTop: 16,
+    paddingLeft: 20,
   },
   heading: {
     fontSize: 24,
@@ -213,7 +217,6 @@ const styles = StyleSheet.create({
   subheading: {
     fontSize: 12,
     color: COLORS.textMuted,
-    marginTop: 2,
   },
   sectionHeader: {
     fontSize: 14,
