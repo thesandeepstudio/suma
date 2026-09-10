@@ -1,0 +1,65 @@
+/*
+ * Folder Colors — SUMA Vault
+ * Enable in: Settings → Appearance → CSS Snippets → folder-colors
+ */
+
+/* ── 01 - Project Overview — Blue ──────────────────────────── */
+.nav-folder-title[data-path*="01 - Project Overview"] .lucide-folder,
+.nav-folder-title[data-path*="01 - Project Overview"] .lucide-folder-open {
+  color: #3B82F6 !important;
+}
+
+/* ── 02 - UI Components — Purple ───────────────────────────── */
+.nav-folder-title[data-path*="02 - UI Components"] .lucide-folder,
+.nav-folder-title[data-path*="02 - UI Components"] .lucide-folder-open {
+  color: #8B5CF6 !important;
+}
+
+/* ── 03 - Screens — Green ──────────────────────────────────── */
+.nav-folder-title[data-path*="03 - Screens"] .lucide-folder,
+.nav-folder-title[data-path*="03 - Screens"] .lucide-folder-open {
+  color: #22C55E !important;
+}
+
+/* ── 04 - Utilities — Orange ───────────────────────────────── */
+.nav-folder-title[data-path*="04 - Utilities"] .lucide-folder,
+.nav-folder-title[data-path*="04 - Utilities"] .lucide-folder-open {
+  color: #F97316 !important;
+}
+
+/* ── 05 - Data — Rose ──────────────────────────────────────── */
+.nav-folder-title[data-path*="05 - Data"] .lucide-folder,
+.nav-folder-title[data-path*="05 - Data"] .lucide-folder-open {
+  color: #F43F5E !important;
+}
+
+/* ── 06 - Git — Cyan ───────────────────────────────────────── */
+.nav-folder-title[data-path*="06 - Git"] .lucide-folder,
+.nav-folder-title[data-path*="06 - Git"] .lucide-folder-open {
+  color: #06B6D4 !important;
+}
+
+/* ── 07 - Changelog — Indigo ───────────────────────────────── */
+.nav-folder-title[data-path*="07 - Changelog"] .lucide-folder,
+.nav-folder-title[data-path*="07 - Changelog"] .lucide-folder-open {
+  color: #6366F1 !important;
+}
+
+/* ── 08 - Tasks — Amber ────────────────────────────────────── */
+.nav-folder-title[data-path*="08 - Tasks"] .lucide-folder,
+.nav-folder-title[data-path*="08 - Tasks"] .lucide-folder-open {
+  color: #F59E0B !important;
+}
+
+/* ── 09 - Backlog — Lime ───────────────────────────────────── */
+.nav-folder-title[data-path*="09 - Backlog"] .lucide-folder,
+.nav-folder-title[data-path*="09 - Backlog"] .lucide-folder-open {
+  color: #84CC16 !important;
+}
+
+/* ── MOC file — Gold ───────────────────────────────────────── */
+.nav-file-title-content[data-path$="MOC.md"] .lucide-file-text,
+.nav-file-title-content[data-path$="MOC.md"] {
+  color: #EAB308 !important;
+  font-weight: 700;
+}

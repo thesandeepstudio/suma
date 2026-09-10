@@ -22,8 +22,9 @@ import {useFocusEffect, useRouter} from 'expo-router';
 import {Category, Expense, IconName, TransactionType, Wallet} from '@/types';
 import {COLORS} from '@/utils/constants';
 import {getCategories, getWallets, addExpense, updateExpense} from '@/utils/storage';
-import {generateId, formatCurrency, getRelativeDate, getCategoryLabel} from '@/utils/helpers';
+import {generateId, formatCurrency, getCategoryLabel} from '@/utils/helpers';
 import {showThemeAlert} from '@/components/ThemeAlert';
+import CustomCalendar from '@/components/CustomCalendar';
 
 const TYPES: {key: TransactionType; label: string; icon: IconName}[] = [
   {key: 'expense', label: 'Expenses', icon: 'remove-circle-outline'},
@@ -32,6 +33,64 @@ const TYPES: {key: TransactionType; label: string; icon: IconName}[] = [
 ];
 
 const SEGMENT_SPRING = {damping: 24, stiffness: 260, mass: 0.7};
+
+let _exprI = 0;
+const exprNumber = (expr: string): number => {
+  let buf = '';
+  while (_exprI < expr.length && /[0-9.]/.test(expr[_exprI])) {
+    buf += expr[_exprI];
+    _exprI++;
+  }
+  if (!buf) throw new Error('expected number');
+  return parseFloat(buf);
+};
+
+const exprFactor = (expr: string): number => {
+  let n = exprNumber(expr);
+  while (_exprI < expr.length && (expr[_exprI] === '*' || expr[_exprI] === '/')) {
+    const op = expr[_exprI];
+    _exprI++;
+    const rhs = exprNumber(expr);
+    if (op === '/') {
+      if (rhs === 0) throw new Error('division by zero');
+      n /= rhs;
+    } else {
+      n *= rhs;
+    }
+  }
+  return n;
+};
+
+const exprTerm = (expr: string): number => {
+  let n = exprFactor(expr);
+  while (_exprI < expr.length && (expr[_exprI] === '+' || expr[_exprI] === '-')) {
+    const op = expr[_exprI];
+    _exprI++;
+    const rhs = exprFactor(expr);
+    if (op === '+') n += rhs;
+    else n -= rhs;
+  }
+  return n;
+};
+
+const evaluateExpression = (expr: string): number => {
+  _exprI = 0;
+  const result = exprTerm(expr);
+  if (_exprI < expr.length) throw new Error('trailing characters');
+  return result;
+};
+
+const resolveAmount = (value: string): string => {
+  const normalized = value.trim().replace(/×/g, '*').replace(/÷/g, '/');
+  if (!normalized) return '';
+  if (!/[+\-*/]/.test(normalized)) return normalized;
+  try {
+    const n = evaluateExpression(normalized);
+    return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : normalized;
+  } catch {
+    return normalized;
+  }
+};
 
 const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialIcons);
 
@@ -317,6 +376,9 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
 
   const [amount, setAmount] = useState(editing ? String(editing.amount) : '');
   const [date, setDate] = useState(editing?.date || new Date().toISOString());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
+  const [showKeypad, setShowKeypad] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>(editing?.category || '');
   const [categories, setCategories] = useState<Category[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -374,7 +436,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
   }));
 
   const handleSave = useCallback(async () => {
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseFloat(resolveAmount(amount));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       showThemeAlert('Error', 'Please enter a valid amount');
       return;
@@ -420,10 +482,6 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
     router.back();
   }, [amount, date, selectedCategory, editing, router, type, wallets.length, selectedWallet, transferFrom, transferTo]);
 
-  const isToday = new Date(date).toDateString() === new Date().toDateString();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const isYesterday = new Date(date).toDateString() === yesterday.toDateString();
   const amountColor = type === 'income' ? COLORS.success : COLORS.text;
   const amountHint =
     type === 'income'
@@ -432,8 +490,37 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
         ? 'How much are you transferring?'
         : 'How much did you spend?';
 
+  const handleKeypadKey = (key: string) => {
+    setAmount(prev => {
+      const last = prev[prev.length - 1];
+      if (/[+\-×÷*\/]/.test(key)) {
+        if (!prev) return prev;
+        if (/[+\-×÷*\/]/.test(last)) return prev.slice(0, -1) + key;
+        return prev + key;
+      }
+      if (key === '.') {
+        if (!prev) return '0.';
+        const segment = prev.split(/[+\-×÷*\/]/).pop() || '';
+        if (segment.includes('.')) return prev;
+        return prev + '.';
+      }
+      return prev + key;
+    });
+  };
+
+  const handleKeypadBack = () => {
+    setAmount(prev => prev.slice(0, -1));
+  };
+
+  const handleKeypadDone = () => {
+    setAmount(resolveAmount(amount));
+    setShowKeypad(false);
+    handleSave();
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <View style={styles.container}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.typeRow}>
         <Animated.View style={[styles.segmentCapsule, capsuleStyle]} />
         {TYPES.map(t => (
@@ -457,7 +544,8 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
             onChangeText={setAmount}
             placeholder="0.00"
             placeholderTextColor={COLORS.textMuted}
-            keyboardType="decimal-pad"
+            showSoftInputOnFocus={false}
+            onFocus={() => setShowKeypad(true)}
           />
         </View>
       </View>
@@ -491,41 +579,96 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
             No wallets yet. Create one in the Wallet tab first.
           </Text>
         )}
-        <View style={styles.listRow}>
-          <View style={styles.listRowIcon}>
-            <MaterialIcons name="calendar-today" size={20} color={COLORS.primary} />
-          </View>
-          <View style={styles.listRowText}>
-            <Text style={styles.listRowLabel}>Date</Text>
-            <Text style={styles.listRowValue}>{getRelativeDate(date)}</Text>
-          </View>
-          <View style={styles.dateChips}>
+<Modal
+          visible={showPicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowPicker(false)}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowPicker(false)}>
+            <View style={styles.modalSheet}>
+              <CustomCalendar
+                key={pickerKey}
+                value={new Date(date)}
+                maximumDate={new Date()}
+                onSelect={selectedDate => {
+                  setDate(selectedDate.toISOString());
+                  setShowPicker(false);
+                }}
+                onClose={() => setShowPicker(false)}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+</View>
+      </ScrollView>
+
+      {showKeypad && (
+        <View style={styles.keypad}>
+          <View style={styles.keypadRow}>
+            {['1', '2', '3'].map(key => (
+              <TouchableOpacity key={key} style={styles.keypadKey} onPress={() => handleKeypadKey(key)}>
+                <Text style={styles.keypadKeyText}>{key}</Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity
-              style={[styles.dateBtn, isToday && styles.dateBtnActive]}
-              onPress={() => setDate(new Date().toISOString())}>
-              <Text style={[styles.dateBtnText, isToday && styles.dateBtnTextActive]}>Today</Text>
+              style={styles.keypadKeySpan}
+              onPress={handleKeypadBack}
+              onLongPress={() => setAmount('')}>
+              <MaterialIcons name="backspace" size={22} color={COLORS.text} />
             </TouchableOpacity>
+          </View>
+          <View style={styles.keypadRow}>
+            {['4', '5', '6', '+', '×'].map(key => (
+              <TouchableOpacity key={key} style={styles.keypadKey} onPress={() => handleKeypadKey(key)}>
+                <Text style={[styles.keypadKeyText, /[+\-×÷]/.test(key) && styles.keypadKeyOpText]}>
+                  {key}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.keypadRow}>
+            {['7', '8', '9', '-', '÷'].map(key => (
+              <TouchableOpacity key={key} style={styles.keypadKey} onPress={() => handleKeypadKey(key)}>
+                <Text style={[styles.keypadKeyText, /[+\-×÷]/.test(key) && styles.keypadKeyOpText]}>
+                  {key}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.keypadRow}>
+            {['.', '0'].map(key => (
+              <TouchableOpacity key={key} style={styles.keypadKey} onPress={() => handleKeypadKey(key)}>
+                <Text style={styles.keypadKeyText}>{key}</Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity
-              style={[styles.dateBtn, isYesterday && styles.dateBtnActive]}
-              onPress={() => setDate(yesterday.toISOString())}>
-              <Text style={[styles.dateBtnText, isYesterday && styles.dateBtnTextActive]}>
-                Yesterday
-              </Text>
+              style={styles.keypadKey}
+              onPress={() => {
+                setDate(new Date().toISOString());
+                setPickerKey(k => k + 1);
+                setShowPicker(true);
+              }}>
+              <Text style={styles.keypadTodayText}>Today</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.keypadKeySpan, styles.keypadTick]} onPress={handleKeypadDone}>
+              <MaterialIcons name="check" size={22} color={COLORS.white} />
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <MaterialIcons name="check" size={24} color={COLORS.white} />
-        <Text style={styles.saveBtnText}>{editing ? 'Update Record' : 'Save Record'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scroll: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
@@ -587,6 +730,57 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 0,
   },
+  keypad: {
+    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    alignItems: 'center',
+  },
+  keypadRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  keypadKey: {
+    width: 60,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keypadKeySpan: {
+    width: 128,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keypadKeyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  keypadKeyOpText: {
+    color: COLORS.primary,
+  },
+  keypadTodayText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  keypadTick: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
   listCard: {
     marginHorizontal: 16,
     borderRadius: 20,
@@ -647,29 +841,12 @@ const styles = StyleSheet.create({
   signMinus: {
     color: COLORS.danger,
   },
-  dateChips: {
-    flexDirection: 'row',
-  },
-  dateBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+  datePickBtn: {
+    padding: 8,
+    borderRadius: 12,
     backgroundColor: COLORS.background,
-    marginLeft: 6,
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  dateBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  dateBtnText: {
-    color: COLORS.textLight,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  dateBtnTextActive: {
-    color: COLORS.white,
   },
   modalBackdrop: {
     flex: 1,

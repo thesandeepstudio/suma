@@ -350,7 +350,7 @@
       "initialBalance": 0.35,
       "currentBalance": 0.35,
       "createdAt": "2026-09-01T06:15:00.000Z",
-      "icon": "currency-rupee"
+      "icon": "account-balance-wallet"
     },
     {
       "id": "w-cash",
