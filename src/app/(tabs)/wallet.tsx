@@ -60,6 +60,7 @@ const WalletScreen: React.FC = () => {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -69,7 +70,7 @@ const WalletScreen: React.FC = () => {
         }
       >
         <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Assets</Text>
+          <Text style={styles.totalLabel}>Total Balance</Text>
           <Text style={styles.totalAmount}>
             {formatCurrency(totalBalance)}
           </Text>
@@ -78,9 +79,9 @@ const WalletScreen: React.FC = () => {
           </Text>
           <View style={styles.totalStats}>
             <View style={styles.totalStat}>
-              <Text style={styles.totalStatLabel}>Net Balance</Text>
+              <Text style={styles.totalStatLabel}>Net Assets</Text>
               <Text style={styles.totalStatValue}>
-                {formatCurrency(totalBalance - debt)}
+                {formatCurrency(totalBalance)}
               </Text>
             </View>
             <View style={styles.totalDivider} />
@@ -140,6 +141,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  content: {
+    paddingBottom: 100,
+  },
   totalCard: {
     backgroundColor: COLORS.primary,
     borderRadius: 20,
@@ -175,11 +179,11 @@ const styles = StyleSheet.create({
   },
   totalStatLabel: {
     color: "rgba(255,255,255,0.7)",
-    fontSize: 12,
+    fontSize: 11,
   },
   totalStatValue: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
     marginTop: 4,
   },

@@ -29,6 +29,21 @@ export const setCurrency = async (currency: string): Promise<void> => {
   await AsyncStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
 };
 
+export const getCategoryOrder = async (): Promise<Record<string, string[]>> => {
+  try {
+    const json = await AsyncStorage.getItem(STORAGE_KEYS.CATEGORY_ORDER);
+    return json ? JSON.parse(json) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const setCategoryOrder = async (
+  order: Record<string, string[]>,
+): Promise<void> => {
+  await AsyncStorage.setItem(STORAGE_KEYS.CATEGORY_ORDER, JSON.stringify(order));
+};
+
 export const getExpenses = async (): Promise<Expense[]> => {
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
@@ -52,6 +67,7 @@ export const clearAllData = async (): Promise<void> => {
     STORAGE_KEYS.SEED_VERSION,
     STORAGE_KEYS.USERNAME,
     STORAGE_KEYS.CURRENCY,
+    STORAGE_KEYS.CATEGORY_ORDER,
   ]);
 };
 
@@ -80,16 +96,30 @@ export const seedInitialData = async (): Promise<void> => {
 };
 
 const ensureSeedRecords = async (): Promise<void> => {
-  const categories = await getCategories();  const merged = DEFAULT_CATEGORIES.map(d => {
-    const existing = categories.find(c => c.name === d.name);
-    return {...d, id: existing?.id ?? d.id};
+  const categories = await getCategories();
+  const flattened = categories
+    .filter(c => !categories.some(x => x.parentId === c.id))
+    .map(c => ({...c, parentId: undefined}));
+  const defaultLeaves = DEFAULT_CATEGORIES.filter(
+    d => !DEFAULT_CATEGORIES.some(x => x.parentId === d.id),
+  );
+  const merged = defaultLeaves.map(d => {
+    const existing = flattened.find(c => c.name === d.name);
+    return existing ? {...existing, parentId: undefined} : {...d, parentId: undefined};
   });
-  const custom = categories.filter(c => !DEFAULT_CATEGORIES.some(d => d.name === c.name));
+  const custom = flattened.filter(c => !defaultLeaves.some(d => d.name === c.name));
   await saveCategories([...merged, ...custom]);
 };
 
 export const getDebt = async (): Promise<number> => {
-  return 6000;
+  const expenses = await getExpenses();
+  const borrowed = expenses
+    .filter(e => e.type === 'income' && e.category === 'Credit')
+    .reduce((sum, e) => sum + e.amount, 0);
+  const repaid = expenses
+    .filter(e => (e.type ?? 'expense') === 'expense' && e.category === 'Credit')
+    .reduce((sum, e) => sum + e.amount, 0);
+  return Math.max(0, borrowed - repaid);
 };
 
 export const getReceivable = async (): Promise<number> => {
@@ -146,7 +176,7 @@ const applyWalletBalance = async (walletId: string | undefined, delta: number): 
 const applyRecordEffect = async (expense: Expense, direction: 1 | -1): Promise<void> => {
   const type = expense.type ?? 'expense';
   if (type === 'expense' && expense.category === 'Borrow') return;
-  const amount = expense.amount * direction;
+  const amount = Math.abs(expense.amount) * direction;
   if (type === 'income') {
     await applyWalletBalance(expense.walletId, amount);
   } else if (type === 'transfer') {

@@ -7,7 +7,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ExpenseCard from "../components/ExpenseCard";
 import { Expense, Category } from "../types";
@@ -21,6 +21,7 @@ import {
 import { getExpenses, getCategories } from "../utils/storage";
 
 const TransactionsScreen: React.FC = () => {
+  const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,7 +113,7 @@ const TransactionsScreen: React.FC = () => {
                     categoryColor={cat.color}
                     categoryIcon={cat.icon}
                     categoryLabel={getCategoryLabel(expense.category, categories)}
-                    onPress={() => {}}
+                    onPress={() => router.push(`/expense/detail/${expense.id}`)}
                   />
                 );
               })}

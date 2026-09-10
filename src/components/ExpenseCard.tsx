@@ -32,6 +32,11 @@ const ExpenseCard: React.FC<Props> = ({
         <Text style={styles.subtitle}>
           {categoryLabel || expense.category} • {getRelativeDate(expense.date)}
         </Text>
+        {expense.note ? (
+          <Text style={styles.note} numberOfLines={1}>
+            {expense.note}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.right}>
         <Text
@@ -85,6 +90,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     color: COLORS.textLight,
+    marginTop: 2,
+  },
+  note: {
+    fontSize: 12,
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   right: {

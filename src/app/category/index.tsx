@@ -88,11 +88,6 @@ const CategoryScreen: React.FC = () => {
     setFormOpen(true);
   };
 
-  const startAddSub = (parent: Category) => {
-    setForm({...emptyForm(), mode: 'add-sub', parentId: parent.id, color: parent.color});
-    setFormOpen(true);
-  };
-
   const startEdit = (cat: Category) => {
     setForm({
       mode: 'edit',
@@ -107,9 +102,6 @@ const CategoryScreen: React.FC = () => {
 
   const handleRowPress = (cat: Category) => {
     showThemeAlert(cat.name, undefined, [
-      ...(cat.parentId
-        ? []
-        : [{text: 'Add Subcategory', onPress: () => startAddSub(cat)}]),
       {text: 'Rename', onPress: () => startEdit(cat)},
       {
         text: 'Delete',
@@ -174,9 +166,7 @@ const CategoryScreen: React.FC = () => {
   };
 
   const renderSubs = (parentId: string) =>
-    categories
-      .filter(c => c.parentId === parentId)
-      .map(sub => (
+    categories.filter(c => c.parentId === parentId).map(sub => (
         <TouchableOpacity
           key={sub.id}
           style={styles.subRow}
@@ -212,7 +202,11 @@ const CategoryScreen: React.FC = () => {
                   {main.name}
                 </Text>
                 <Text style={styles.mainMeta}>
-                  {categories.filter(c => c.parentId === main.id).length} subcategories
+                  {
+                    categories.filter(c => c.parentId === main.id).length > 0
+                      ? `${categories.filter(c => c.parentId === main.id).length} subcategories`
+                      : ''
+                  }
                 </Text>
               </View>
               <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />

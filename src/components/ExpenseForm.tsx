@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  Keyboard,
   LayoutChangeEvent,
 } from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
@@ -21,8 +22,8 @@ import Animated, {
 import {useFocusEffect, useRouter} from 'expo-router';
 import {Category, Expense, IconName, TransactionType, Wallet} from '@/types';
 import {COLORS} from '@/utils/constants';
-import {getCategories, getWallets, addExpense, updateExpense} from '@/utils/storage';
-import {generateId, formatCurrency, getCategoryLabel} from '@/utils/helpers';
+import {getCategories, getWallets, addExpense, updateExpense, getCategoryOrder, setCategoryOrder} from '@/utils/storage';
+import {generateId, formatCurrency} from '@/utils/helpers';
 import {showThemeAlert} from '@/components/ThemeAlert';
 import CustomCalendar from '@/components/CustomCalendar';
 
@@ -155,41 +156,25 @@ const WalletPickerField: React.FC<{
   selectedId: string;
   onSelect: (id: string) => void;
   sign: '+' | '-' | undefined;
-  divider?: boolean;
-}> = ({label, wallets, selectedId, onSelect, sign, divider = true}) => {
+}> = ({label, wallets, selectedId, onSelect, sign}) => {
   const [open, setOpen] = useState(false);
   const selected = wallets.find(w => w.id === selectedId);
 
   return (
     <>
       <TouchableOpacity
-        style={[styles.listRow, divider && styles.listRowDivider]}
-        activeOpacity={0.6}
+        style={styles.walletChip}
+        activeOpacity={0.7}
         onPress={() => setOpen(true)}>
-        <View style={styles.listRowIcon}>
-          <MaterialIcons
-            name={selected?.icon || 'account-balance-wallet'}
-            size={20}
-            color={COLORS.primary}
-          />
-        </View>
-        <View style={styles.listRowText}>
-          <Text style={styles.listRowLabel}>{label}</Text>
-          <Text style={styles.listRowValue} numberOfLines={1}>
-            {selected ? selected.name : 'Select a wallet...'}
-          </Text>
-        </View>
-        {selected && (
-          <View style={styles.listRowRight}>
-            {sign && (
-              <Text style={[styles.signBadge, sign === '+' ? styles.signPlus : styles.signMinus]}>
-                {sign}
-              </Text>
-            )}
-            <Text style={styles.listRowMeta}>{formatCurrency(selected.currentBalance)}</Text>
-          </View>
-        )}
-        <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
+        <MaterialIcons
+          name={selected?.icon || 'account-balance-wallet'}
+          size={16}
+          color={COLORS.primary}
+        />
+        <Text style={styles.walletChipName} numberOfLines={1}>
+          {selected ? selected.name : 'Select wallet...'}
+        </Text>
+        <MaterialIcons name="expand-more" size={18} color={COLORS.textMuted} />
       </TouchableOpacity>
       <Modal
         visible={open}
@@ -198,7 +183,9 @@ const WalletPickerField: React.FC<{
         onRequestClose={() => setOpen(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>{label}</Text>
+            <Text style={styles.modalTitle}>
+              {label === 'From' ? 'From Wallet' : label === 'To' ? 'To Wallet' : 'Wallet'}
+            </Text>
             {wallets.map(w => {
               const isSelected = w.id === selectedId;
               return (
@@ -244,120 +231,73 @@ WalletPickerField.displayName = 'WalletPickerField';
 
 const CategoryPickerField: React.FC<{
   categories: Category[];
-  selected: string;
   onSelect: (name: string) => void;
-  divider?: boolean;
-}> = ({categories, selected, onSelect, divider = true}) => {
-  const [open, setOpen] = useState(false);
-  const [parentId, setParentId] = useState<string | undefined>(undefined);
+  onAdd: () => void;
+}> = ({categories, onSelect, onAdd}) => {
+  const [orderMap, setOrderMap] = useState<Record<string, string[]>>({});
 
-  const selectedCat = categories.find(c => c.name === selected);
-  const mains = categories.filter(c => !c.parentId);
-  const subs = parentId ? categories.filter(c => c.parentId === parentId) : [];
-  const parentName =
-    parentId ? categories.find(c => c.id === parentId)?.name : undefined;
+  useEffect(() => {
+    getCategoryOrder().then(saved => {
+      if (saved) setOrderMap(saved);
+    });
+  }, []);
 
-  const openModal = () => {
-    setParentId(selectedCat?.parentId || undefined);
-    setOpen(true);
+  const leaves = categories.filter(c => !categories.some(x => x.parentId === c.id));
+
+  const groupKey = '__mains';
+  const remembered = (orderMap[groupKey] || []).filter(id => leaves.some(c => c.id === id));
+  const displayItems = [
+    ...remembered.map(id => leaves.find(c => c.id === id)).filter((c): c is Category => Boolean(c)),
+    ...leaves.filter(c => !remembered.includes(c.id)),
+  ];
+  const highlighted = displayItems.length > 0 ? displayItems[0] : null;
+
+  const moveToFront = (id: string) => {
+    const cur = orderMap[groupKey] || [];
+    const nextMap = {...orderMap, [groupKey]: [id, ...cur.filter(x => x !== id)]};
+    setOrderMap(nextMap);
+    setCategoryOrder(nextMap);
   };
 
   return (
-    <>
+    <View style={styles.categoryGrid}>
+      {displayItems.map(category => {
+        const active = highlighted?.id === category.id;
+        return (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.categoryChip,
+              active && {borderColor: category.color, backgroundColor: category.color + '12'},
+            ]}
+            activeOpacity={0.7}
+            onPress={() => {
+              onSelect(category.name);
+              moveToFront(category.id);
+            }}>
+            <View style={[styles.categoryChipIcon, active && {backgroundColor: category.color + '1F'}]}>
+              <MaterialIcons
+                name={category.icon as any}
+                size={22}
+                color={active ? category.color : COLORS.textMuted}
+              />
+            </View>
+            <Text style={[styles.categoryChipName, active && {color: category.color}]} numberOfLines={1}>
+              {category.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
       <TouchableOpacity
-        style={[styles.listRow, divider && styles.listRowDivider]}
-        activeOpacity={0.6}
-        onPress={openModal}>
-        <View style={styles.listRowIcon}>
-          <MaterialIcons
-            name={(selectedCat?.icon as IconName) || 'category'}
-            size={20}
-            color={selectedCat?.color || COLORS.textMuted}
-          />
+        style={[styles.categoryChip, styles.categoryChipAdd]}
+        activeOpacity={0.7}
+        onPress={onAdd}>
+        <View style={[styles.categoryChipIcon, styles.categoryChipAddIcon]}>
+          <MaterialIcons name="add" size={22} color={COLORS.textMuted} />
         </View>
-        <View style={styles.listRowText}>
-          <Text style={styles.listRowLabel}>Category</Text>
-          <Text style={[styles.listRowValue, {color: selectedCat?.color || COLORS.text}]} numberOfLines={1}>
-            {selectedCat ? getCategoryLabel(selectedCat.name, categories) : 'Select a category...'}
-          </Text>
-        </View>
-        <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
+        <Text style={styles.categoryChipName}>New</Text>
       </TouchableOpacity>
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              {parentId && (
-                <TouchableOpacity
-                  style={styles.modalBackBtn}
-                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                  onPress={() => setParentId(undefined)}>
-                  <MaterialIcons name="arrow-back" size={18} color={COLORS.text} />
-                  <Text style={styles.modalBackText}>Categories</Text>
-                </TouchableOpacity>
-              )}
-              <Text style={styles.modalTitle}>
-                {parentName || 'Category'}
-              </Text>
-            </View>
-            <View style={styles.modalGrid}>
-              {parentId && (
-                <TouchableOpacity
-                  style={[styles.categoryItem, styles.categoryMainSelect]}
-                  onPress={() => {
-                    if (parentName) {
-                      onSelect(parentName);
-                      setOpen(false);
-                    }
-                  }}>
-                  <MaterialIcons name="category" size={18} color={COLORS.textMuted} />
-                  <Text style={styles.categoryText}>Use &ldquo;{parentName}&rdquo; category</Text>
-                </TouchableOpacity>
-              )}
-              {(parentId ? subs : mains).map(category => {
-                const isSelected = category.name === selected;
-                const hasSubs = categories.some(c => c.parentId === category.id);
-                return (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryItem,
-                      parentId && styles.categoryItemChild,
-                      isSelected && {borderColor: category.color, backgroundColor: category.color + '10'},
-                    ]}
-                    onPress={() => {
-                      if (!parentId && hasSubs) {
-                        setParentId(category.id);
-                      } else {
-                        onSelect(category.name);
-                        setOpen(false);
-                      }
-                    }}>
-                    <MaterialIcons
-                      name={category.icon as any}
-                      size={20}
-                      color={isSelected ? category.color : COLORS.textMuted}
-                    />
-                    <Text
-                      style={[styles.categoryText, isSelected && {color: category.color}]}
-                      numberOfLines={1}>
-                      {category.name}
-                    </Text>
-                    {!parentId && hasSubs && (
-                      <MaterialIcons name="chevron-right" size={16} color={COLORS.textMuted} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </>
+    </View>
   );
 };
 
@@ -385,6 +325,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
   const [selectedWallet, setSelectedWallet] = useState<string>(editing?.walletId || '');
   const [transferFrom, setTransferFrom] = useState<string>(editing?.walletId || '');
   const [transferTo, setTransferTo] = useState<string>(editing?.toWalletId || '');
+  const [note, setNote] = useState(editing?.note || '');
 
   useFocusEffect(
     useCallback(() => {
@@ -436,7 +377,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
   }));
 
   const handleSave = useCallback(async () => {
-    const parsedAmount = parseFloat(resolveAmount(amount));
+    const parsedAmount = Math.abs(parseFloat(resolveAmount(amount)));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       showThemeAlert('Error', 'Please enter a valid amount');
       return;
@@ -472,6 +413,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
       type,
       walletId: type === 'transfer' ? transferFrom : selectedWallet,
       toWalletId: type === 'transfer' ? transferTo : undefined,
+      note: note.trim() || undefined,
     };
 
     if (editing) {
@@ -480,7 +422,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
       await addExpense(expense);
     }
     router.back();
-  }, [amount, date, selectedCategory, editing, router, type, wallets.length, selectedWallet, transferFrom, transferTo]);
+  }, [amount, date, selectedCategory, editing, router, type, wallets.length, selectedWallet, transferFrom, transferTo, note]);
 
   const amountColor = type === 'income' ? COLORS.success : COLORS.text;
   const amountHint =
@@ -520,7 +462,6 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.typeRow}>
         <Animated.View style={[styles.segmentCapsule, capsuleStyle]} />
         {TYPES.map(t => (
@@ -533,7 +474,6 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
           />
         ))}
       </View>
-
       <View style={styles.hero}>
         <Text style={styles.heroCaption}>{amountHint}</Text>
         <View style={styles.heroRow}>
@@ -545,41 +485,32 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
             placeholder="0.00"
             placeholderTextColor={COLORS.textMuted}
             showSoftInputOnFocus={false}
-            onFocus={() => setShowKeypad(true)}
+            onFocus={() => {
+              Keyboard.dismiss();
+              setShowKeypad(true);
+            }}
           />
         </View>
       </View>
 
-      <View style={styles.listCard}>
-        <WalletPickerField
-          label={type === 'income' ? 'To Wallet' : 'From Wallet'}
-          wallets={wallets}
-          selectedId={type === 'transfer' ? transferFrom : selectedWallet}
-          onSelect={type === 'transfer' ? setTransferFrom : setSelectedWallet}
-          sign={type === 'income' ? '+' : '-'}
-        />
-        {type === 'transfer' && (
-          <WalletPickerField
-            label="To Wallet"
-            wallets={wallets}
-            selectedId={transferTo}
-            onSelect={setTransferTo}
-            sign="+"
-          />
-        )}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.categorySection}>
         {type !== 'transfer' && (
-          <CategoryPickerField
-            categories={categories}
-            selected={selectedCategory}
-            onSelect={setSelectedCategory}
-          />
+          <>
+            <Text style={styles.categorySectionLabel}>Category</Text>
+            <CategoryPickerField
+              categories={categories}
+              onSelect={setSelectedCategory}
+              onAdd={() => router.push('/category')}
+            />
+          </>
         )}
         {wallets.length === 0 && (
           <Text style={styles.walletEmptyHint}>
             No wallets yet. Create one in the Wallet tab first.
           </Text>
         )}
-<Modal
+        <Modal
           visible={showPicker}
           transparent
           animationType="fade"
@@ -605,8 +536,54 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
 </View>
       </ScrollView>
 
-      {showKeypad && (
-        <View style={styles.keypad}>
+      <View style={styles.keypad}>
+        <View style={styles.keypadWalletRow}>
+            {type === 'transfer' ? (
+              <>
+                <WalletPickerField
+                  label="From"
+                  wallets={wallets}
+                  selectedId={transferFrom}
+                  onSelect={setTransferFrom}
+                  sign="-"
+                />
+                <WalletPickerField
+                  label="To"
+                  wallets={wallets}
+                  selectedId={transferTo}
+                  onSelect={setTransferTo}
+                  sign="+"
+                />
+              </>
+            ) : (
+              <WalletPickerField
+                label={type === 'income' ? 'To' : 'From'}
+                wallets={wallets}
+                selectedId={selectedWallet}
+                onSelect={setSelectedWallet}
+                sign={type === 'income' ? '+' : '-'}
+              />
+            )}
+            <View style={styles.keypadWalletSpacer} />
+            <View style={styles.keypadNoteInline}>
+              <TextInput
+                style={styles.keypadNoteInlineInput}
+                value={note}
+                onChangeText={setNote}
+                placeholder="Note"
+                placeholderTextColor={COLORS.textMuted}
+                onFocus={() => setShowKeypad(false)}
+                onBlur={() => setShowKeypad(true)}
+              />
+              <MaterialIcons
+                name="edit"
+                size={16}
+                color={note ? COLORS.primary : COLORS.textMuted}
+              />
+            </View>
+          </View>
+          {showKeypad && (
+            <>
           <View style={styles.keypadRow}>
             {['1', '2', '3'].map(key => (
               <TouchableOpacity key={key} style={styles.keypadKey} onPress={() => handleKeypadKey(key)}>
@@ -657,8 +634,9 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
               <MaterialIcons name="check" size={22} color={COLORS.white} />
             </TouchableOpacity>
           </View>
+            </>
+          )}
         </View>
-      )}
     </View>
   );
 };
@@ -678,7 +656,8 @@ const styles = StyleSheet.create({
   typeRow: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 20,
+    marginTop: 12,
+    marginBottom: 4,
     borderRadius: 18,
     padding: 4,
     backgroundColor: '#F1F1F4',
@@ -744,6 +723,54 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
+  keypadWalletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignSelf: 'stretch',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  keypadWalletSpacer: {
+    flex: 1,
+  },
+  keypadNoteInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    maxWidth: '45%',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1.5,
+    borderBottomColor: COLORS.border,
+  },
+  keypadNoteInlineInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text,
+    padding: 0,
+    textAlign: 'left',
+  },
+  walletChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 6,
+    maxWidth: '80%',
+  },
+  walletChipName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    flexShrink: 1,
+  },
   keypadKey: {
     width: 60,
     height: 44,
@@ -781,54 +808,63 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
-  listCard: {
-    marginHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+  categorySection: {
+    paddingTop: 4,
+    overflow: 'hidden',
   },
-  listRow: {
+  categorySectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    marginTop: 12,
+    marginBottom: 2,
+    paddingHorizontal: 16,
+  },
+  categoryGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  categoryChip: {
+    flexBasis: '22%',
+    flexGrow: 1,
+    maxWidth: '25%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 6,
   },
-  listRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  listRowIcon: {
+  categoryChipIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F1F4',
-    marginRight: 12,
   },
-  listRowText: {
-    flex: 1,
-  },
-  listRowLabel: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
-  listRowValue: {
-    fontSize: 15,
+  categoryChipName: {
+    fontSize: 10,
     fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 1,
+    color: COLORS.textLight,
+    textAlign: 'center',
+    maxWidth: 68,
   },
-  listRowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 6,
+  categoryChipAdd: {
+    borderStyle: 'dashed',
+    borderColor: COLORS.border,
+    backgroundColor: 'transparent',
   },
-  listRowMeta: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: COLORS.textMuted,
+  categoryChipAddIcon: {
+    backgroundColor: '#F1F1F4',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.border,
   },
   signBadge: {
     fontSize: 16,
@@ -840,13 +876,6 @@ const styles = StyleSheet.create({
   },
   signMinus: {
     color: COLORS.danger,
-  },
-  datePickBtn: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   modalBackdrop: {
     flex: 1,
@@ -866,24 +895,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalBackBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 10,
-    paddingVertical: 2,
-    paddingRight: 8,
-  },
-  modalBackText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginLeft: 4,
   },
   modalRow: {
     flexDirection: 'row',
@@ -924,62 +935,12 @@ const styles = StyleSheet.create({
   modalRowTextActive: {
     color: COLORS.white,
   },
-  modalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    margin: 4,
-    backgroundColor: COLORS.background,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: COLORS.textLight,
-    marginLeft: 6,
-  },
-  categoryItemChild: {
-    backgroundColor: '#F6F6F7',
-  },
-  categoryMainSelect: {
-    width: '100%',
-    marginHorizontal: 0,
-    marginBottom: 8,
-    backgroundColor: COLORS.card,
-  },
   walletEmptyHint: {
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 4,
     marginBottom: 4,
     paddingHorizontal: 8,
-  },
-  saveBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    borderRadius: 20,
-    paddingVertical: 16,
-    marginHorizontal: 16,
-    marginTop: 24,
-    shadowColor: COLORS.primary,
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  saveBtnText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
   },
 });
 

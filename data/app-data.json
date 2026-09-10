@@ -1,5 +1,5 @@
-{
-  "seedVersion": "16",
+﻿{
+  "seedVersion": "17",
   "transactions": [
     {
       "id": "s1-1",
@@ -14,7 +14,7 @@
       "id": "s1-2",
       "title": "Food",
       "amount": 120,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-01T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-global"
@@ -32,7 +32,7 @@
       "id": "s1-4",
       "title": "Food",
       "amount": 35,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-01T06:15:00.000Z",
       "type": "income",
       "walletId": "w-esewa"
@@ -68,7 +68,7 @@
       "id": "s2-3",
       "title": "Food",
       "amount": 55,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-02T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-global"
@@ -77,7 +77,7 @@
       "id": "s2-4",
       "title": "Trans",
       "amount": 120,
-      "category": "Trans",
+      "category": "Transport",
       "date": "2026-09-02T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -104,7 +104,7 @@
       "id": "s2-7",
       "title": "Trans",
       "amount": 120,
-      "category": "Trans",
+      "category": "Transport",
       "date": "2026-09-02T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -122,7 +122,7 @@
       "id": "s3-1",
       "title": "cash exchange",
       "amount": 100,
-      "category": "Bills",
+      "category": "Bills & Utilities",
       "date": "2026-09-03T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-global"
@@ -131,7 +131,7 @@
       "id": "s3-2",
       "title": "Food",
       "amount": 120,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-03T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -140,7 +140,7 @@
       "id": "s3-3",
       "title": "sashant",
       "amount": 850,
-      "category": "Bills",
+      "category": "Bills & Utilities",
       "date": "2026-09-03T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -167,7 +167,7 @@
       "id": "s4-1",
       "title": "Food",
       "amount": 120,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-04T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -176,7 +176,7 @@
       "id": "s5-1",
       "title": "Trans",
       "amount": 50,
-      "category": "Trans",
+      "category": "Transport",
       "date": "2026-09-05T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-cash"
@@ -185,7 +185,7 @@
       "id": "s5-2",
       "title": "Trans",
       "amount": 70,
-      "category": "Trans",
+      "category": "Transport",
       "date": "2026-09-05T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -194,7 +194,7 @@
       "id": "s5-3",
       "title": "Food",
       "amount": 300,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-05T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -203,7 +203,7 @@
       "id": "s5-4",
       "title": "Telephone",
       "amount": 30,
-      "category": "Telephone",
+      "category": "Bills & Utilities",
       "date": "2026-09-05T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -212,7 +212,7 @@
       "id": "s5-5",
       "title": "After adjust: 91.72",
       "amount": 10,
-      "category": "GLB",
+      "category": "Other",
       "date": "2026-09-05T06:15:00.000Z",
       "type": "income",
       "walletId": "w-global"
@@ -230,7 +230,7 @@
       "id": "s6-1",
       "title": "Trans",
       "amount": 80,
-      "category": "Trans",
+      "category": "Transport",
       "date": "2026-09-06T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -248,7 +248,7 @@
       "id": "s6-3",
       "title": "hair cut",
       "amount": 200,
-      "category": "Prop.Mgmt.",
+      "category": "Other",
       "date": "2026-09-06T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -266,7 +266,7 @@
       "id": "s6-5",
       "title": "Food",
       "amount": 500,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-06T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
@@ -284,7 +284,7 @@
       "id": "s7-1",
       "title": "After adjust: 5",
       "amount": 45,
-      "category": "Cash",
+      "category": "Other",
       "date": "2026-09-07T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-cash"
@@ -293,7 +293,7 @@
       "id": "s7-2",
       "title": "GLB",
       "amount": 90,
-      "category": "GLB",
+      "category": "Other",
       "date": "2026-09-07T06:15:00.000Z",
       "type": "income",
       "walletId": "w-esewa"
@@ -329,10 +329,28 @@
       "id": "s8-3",
       "title": "Food",
       "amount": 300,
-      "category": "Food",
+      "category": "Food & Dining",
       "date": "2026-09-08T06:15:00.000Z",
       "type": "expense",
       "walletId": "w-esewa"
+    },
+    {
+      "id": "s10-1",
+      "title": "Khaja",
+      "amount": 140,
+      "category": "Khaja",
+      "date": "2026-09-10T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
+    },
+    {
+      "id": "s10-2",
+      "title": "chiya",
+      "amount": 40,
+      "category": "chiya",
+      "date": "2026-09-10T06:15:00.000Z",
+      "type": "expense",
+      "walletId": "w-global"
     }
   ],
   "wallets": [
@@ -476,6 +494,25 @@
       "icon": "local-drink",
       "color": "#8C2F2F",
       "parentId": "13"
+    },
+    {
+      "id": "13-4",
+      "name": "Beverages",
+      "icon": "local-drink",
+      "color": "#7F7F7F",
+      "parentId": "13"
+    },
+    {
+      "id": "14",
+      "name": "Sports",
+      "icon": "fitness-center",
+      "color": "#5F5F5F"
+    },
+    {
+      "id": "15",
+      "name": "Receipt",
+      "icon": "receipt",
+      "color": "#6B6B6B"
     }
   ]
 }

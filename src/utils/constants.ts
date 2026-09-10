@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   SEED_VERSION: "@suma_seed_version",
   USERNAME: "@suma_username",
   CURRENCY: "@suma_currency",
+  CATEGORY_ORDER: "@suma_category_order",
 };
 
 export const DEFAULT_CATEGORIES: Category[] = appData.categories as Category[];
