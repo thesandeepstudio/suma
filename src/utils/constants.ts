@@ -38,6 +38,7 @@ export const STORAGE_KEYS = {
   CATEGORY_ORDER: "@suma_category_order",
   WALLET_ORDER: "@suma_wallet_order",
   DELETED_SEED_IDS: "@suma_deleted_seed_ids",
+  ONBOARDING_DONE: "@suma_onboarding_done",
 };
 
 export const DEFAULT_CATEGORIES: Category[] = appData.categories as Category[];
@@ -69,3 +70,11 @@ export const COLORS = {
   chartIncome: "#A0A0A0",
   grid: "#ECECEC",
 };
+
+export const DONUT_COLORS: string[] = [
+  "#111111",
+  "#4A4A4A",
+  "#757575",
+  "#B0B0B0",
+  "#D9D9D9",
+];

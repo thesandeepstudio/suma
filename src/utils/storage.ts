@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Expense, Category, Wallet, Budget} from '../types';
 import {STORAGE_KEYS, DEFAULT_CATEGORIES} from './constants';
+import {generateId, advanceByFreq} from './helpers';
 import appData from '../../data/app-data.json';
 
 const SEED_VERSION = appData.seedVersion;
@@ -11,6 +12,59 @@ const isSpendingExpense = (e: Expense): boolean =>
   (e.type ?? 'expense') === 'expense' &&
   e.category !== 'Borrow' &&
   e.category !== 'Credit';
+
+export const getUpcomingRecurring = async (limit = 4): Promise<Expense[]> => {
+  const expenses = await getExpenses();
+  return expenses
+    .filter(e => e.repeat && !e.repeatPaused && e.nextDue)
+    .sort(
+      (a, b) =>
+        new Date(a.nextDue as string).getTime() - new Date(b.nextDue as string).getTime(),
+    )
+    .slice(0, limit);
+};
+
+export const processRecurring = async (): Promise<number> => {
+  const expenses = await getExpenses();
+  const now = Date.now();
+  let created = 0;
+  let mutated = false;
+  const additions: Expense[] = [];
+  for (const e of expenses) {
+    if (!e.repeat || e.repeatPaused || !e.nextDue) continue;
+    let next = e.nextDue;
+    let guard = 0;
+    while (
+      new Date(next).getTime() <= now &&
+      guard < 60 &&
+      (!e.repeat.endsOn || new Date(next).getTime() <= new Date(e.repeat.endsOn).getTime())
+    ) {
+      additions.push({
+        id: generateId(),
+        title: e.title,
+        amount: e.amount,
+        category: e.category,
+        date: next,
+        type: e.type,
+        walletId: e.walletId,
+        toWalletId: e.toWalletId,
+        note: e.note,
+      });
+      created++;
+      next = advanceByFreq(next, e.repeat.freq);
+      guard++;
+    }
+    if (next !== e.nextDue) {
+      e.nextDue = next;
+      mutated = true;
+    }
+  }
+  if (created > 0 || mutated) {
+    const merged = [...additions.reverse(), ...expenses];
+    await saveExpenses(merged);
+  }
+  return created;
+};
 
 export const getUsername = async (): Promise<string> => {
   try {
@@ -40,6 +94,23 @@ export const getCurrency = async (): Promise<string> => {
 export const setCurrency = async (currency: string): Promise<boolean> => {
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const getOnboardingDone = async (): Promise<boolean> => {
+  try {
+    return (await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE)) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+export const setOnboardingDone = async (done: boolean): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_DONE, String(done));
     return true;
   } catch {
     return false;

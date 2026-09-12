@@ -1,27 +1,33 @@
-import {Stack} from 'expo-router';
+import {Stack, useRouter} from 'expo-router';
 import {StatusBar} from 'expo-status-bar';
 import {useEffect, useState} from 'react';
 import {View, ActivityIndicator, StyleSheet} from 'react-native';
 import {COLORS} from '../utils/constants';
-import {seedInitialData, getCurrency} from '../utils/storage';
+import {seedInitialData, getCurrency, processRecurring, getOnboardingDone} from '../utils/storage';
 import {setActiveCurrency} from '../utils/helpers';
 import {ThemeAlert} from '../components/ThemeAlert';
 
 export default function RootLayout() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       await seedInitialData();
-      const currency = await getCurrency();
+      await processRecurring();
+      const [currency, onboardingDone] = await Promise.all([
+        getCurrency(),
+        getOnboardingDone(),
+      ]);
       setActiveCurrency(currency);
       if (mounted) setReady(true);
+      if (!onboardingDone && mounted) router.replace('/onboarding');
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [router]);
 
   if (!ready) {
     return (
@@ -42,6 +48,10 @@ export default function RootLayout() {
           headerTintColor: COLORS.text,
         }}>
         <Stack.Screen name="(tabs)" options={{headerShown: false}} />
+        <Stack.Screen
+          name="onboarding"
+          options={{headerShown: false, gestureEnabled: false}}
+        />
         <Stack.Screen
           name="expense/index"
           options={{

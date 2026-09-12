@@ -17,9 +17,9 @@ import Svg, {
   LinearGradient,
   Stop,
 } from 'react-native-svg';
-import {getTrend, getMonthSummary, TrendPoint, TrendRange} from '../../utils/storage';
+import {getTrend, getMonthSummary, getCategoryTotals, TrendPoint, TrendRange} from '../../utils/storage';
 import {formatCurrency} from '../../utils/helpers';
-import {COLORS} from '../../utils/constants';
+import {COLORS, DONUT_COLORS} from '../../utils/constants';
 
 const LINE_SPENDING = COLORS.danger;
 const LINE_INCOME = COLORS.chartIncome;
@@ -29,6 +29,13 @@ const PAD_TOP = 16;
 const PAD_BOTTOM = 10;
 const PAD_X = 20;
 const PLOT_H = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
+
+const DONUT_SIZE = 160;
+const DONUT_R = 58;
+const DONUT_C = DONUT_SIZE / 2;
+const DONUT_T = 22;
+const DONUT_GAP = 0.016;
+const DONUT_TOP = 5;
 
 const RANGES: {key: TrendRange; label: string}[] = [
   {key: '1d', label: '1D'},
@@ -65,6 +72,40 @@ const smoothPath = (pts: Pt[]): string => {
     d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
   }
   return d;
+};
+
+const donutArc = (startFrac: number, endFrac: number): string => {
+  const a0 = startFrac * 2 * Math.PI - Math.PI / 2;
+  const a1 = endFrac * 2 * Math.PI - Math.PI / 2;
+  const x0 = DONUT_C + DONUT_R * Math.cos(a0);
+  const y0 = DONUT_C + DONUT_R * Math.sin(a0);
+  const x1 = DONUT_C + DONUT_R * Math.cos(a1);
+  const y1 = DONUT_C + DONUT_R * Math.sin(a1);
+  const largeArc = endFrac - startFrac > 0.5 ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${DONUT_R} ${DONUT_R} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+};
+
+interface DonutSlice {
+  name: string;
+  amount: number;
+  start: number;
+  end: number;
+  pct: number;
+}
+
+const buildDonutSlices = (totals: Record<string, number>): DonutSlice[] => {
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const top = entries.slice(0, DONUT_TOP).map(([name, amount]) => ({name, amount}));
+  const other = entries.slice(DONUT_TOP).reduce((sum, [, amount]) => sum + amount, 0);
+  if (other > 0) top.push({name: 'Other', amount: other});
+  const grandTotal = top.reduce((sum, s) => sum + s.amount, 0);
+  if (grandTotal <= 0) return [];
+  let acc = 0;
+  return top.map(s => {
+    const start = acc;
+    acc += s.amount / grandTotal;
+    return {...s, start, end: acc, pct: Math.round((s.amount / grandTotal) * 100)};
+  });
 };
 
 const RangeButton: React.FC<{
@@ -104,14 +145,20 @@ const ReportScreen: React.FC = () => {
   const [points, setPoints] = useState<TrendPoint[]>([]);
   const [range, setRange] = useState<TrendRange>('1w');
   const [monthSummary, setMonthSummary] = useState({income: 0, expense: 0});
+  const [categoryTotals, setCategoryTotals] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [chartWidth, setChartWidth] = useState(0);
   const chartOpacity = useSharedValue(1);
 
   const loadData = useCallback(async () => {
-    const [trend, summary] = await Promise.all([getTrend(range), getMonthSummary()]);
+    const [trend, summary, totals] = await Promise.all([
+      getTrend(range),
+      getMonthSummary(),
+      getCategoryTotals(),
+    ]);
     setPoints(trend);
     setMonthSummary(summary);
+    setCategoryTotals(totals);
     setLoading(false);
   }, [range]);
 
@@ -187,6 +234,9 @@ const ReportScreen: React.FC = () => {
 
   const totalIncome = points.reduce((sum, p) => sum + p.income, 0);
   const totalExpense = points.reduce((sum, p) => sum + p.expense, 0);
+
+  const donutSlices = buildDonutSlices(categoryTotals);
+  const donutTotal = donutSlices.reduce((sum, s) => sum + s.amount, 0);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -355,6 +405,64 @@ const ReportScreen: React.FC = () => {
           </View>
           </Animated.View>
         </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleWrap}>
+              <Text style={styles.cardTitle}>Spending by category</Text>
+              <Text style={styles.cardSub}>This month</Text>
+            </View>
+          </View>
+
+          {donutSlices.length === 0 ? (
+            <Text style={styles.donutEmpty}>
+              No spending this month yet.
+            </Text>
+          ) : (
+            <View style={styles.donutRow}>
+              <View>
+                <Svg width={DONUT_SIZE} height={DONUT_SIZE}>
+                  {donutSlices.map((slice, i) => {
+                    const gap = donutSlices.length > 1 ? DONUT_GAP : 0;
+                    const start = Math.min(slice.start + gap / 2, slice.end - 0.001);
+                    const end = Math.max(slice.end - gap / 2, start + 0.001);
+                    return (
+                      <Path
+                        key={slice.name}
+                        d={donutArc(start, end)}
+                        stroke={DONUT_COLORS[i % DONUT_COLORS.length]}
+                        strokeWidth={DONUT_T}
+                        fill="none"
+                        strokeLinecap="round"
+                      />
+                    );
+                  })}
+                </Svg>
+                <View style={styles.donutCenter} pointerEvents="none">
+                  <Text style={styles.donutCenterLabel}>Spent</Text>
+                  <Text style={styles.donutCenterValue}>{formatCurrency(donutTotal)}</Text>
+                </View>
+              </View>
+              <View style={styles.donutLegend}>
+                {donutSlices.map((slice, i) => (
+                  <View key={slice.name} style={styles.donutRowItem}>
+                    <View
+                      style={[
+                        styles.donutDot,
+                        {backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length]},
+                      ]}
+                    />
+                    <Text style={styles.donutName} numberOfLines={1}>
+                      {slice.name}
+                    </Text>
+                    <Text style={styles.donutPct}>{slice.pct}%</Text>
+                    <Text style={styles.donutAmount}>{formatCurrency(slice.amount)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -516,6 +624,76 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginTop: 2,
+  },
+  donutEmpty: {
+    marginTop: 20,
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  donutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  donutCenter: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: DONUT_SIZE,
+    height: DONUT_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  donutCenterLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  donutCenterValue: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  donutLegend: {
+    flex: 1,
+    marginLeft: 18,
+  },
+  donutRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  donutDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  donutName: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  donutPct: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+    marginRight: 10,
+    minWidth: 32,
+    textAlign: 'right',
+  },
+  donutAmount: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    fontWeight: '700',
+    minWidth: 56,
+    textAlign: 'right',
   },
 });
 

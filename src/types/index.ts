@@ -3,6 +3,13 @@ export type IconName =
 
 export type TransactionType = 'expense' | 'income' | 'transfer';
 
+export type RepeatFreq = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RepeatRule {
+  freq: RepeatFreq;
+  endsOn?: string;
+}
+
 export interface Expense {
   id: string;
   title: string;
@@ -13,6 +20,9 @@ export interface Expense {
   type?: TransactionType;
   walletId?: string;
   toWalletId?: string;
+  repeat?: RepeatRule;
+  nextDue?: string;
+  repeatPaused?: boolean;
 }
 
 export interface Category {

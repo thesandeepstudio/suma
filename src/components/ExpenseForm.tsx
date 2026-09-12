@@ -20,10 +20,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {useFocusEffect, useRouter} from 'expo-router';
-import {Category, Expense, IconName, TransactionType, Wallet} from '@/types';
+import {Category, Expense, IconName, RepeatFreq, TransactionType, Wallet} from '@/types';
 import {COLORS} from '@/utils/constants';
 import {getCategories, getWallets, addExpense, updateExpense, getCategoryOrder, setCategoryOrder, getWalletOrder, setWalletOrder} from '@/utils/storage';
-import {generateId, formatCurrency, getActiveCurrency} from '@/utils/helpers';
+import {generateId, formatCurrency, getActiveCurrency, advanceByFreq} from '@/utils/helpers';
 import {showThemeAlert} from '@/components/ThemeAlert';
 import CustomCalendar from '@/components/CustomCalendar';
 
@@ -31,6 +31,14 @@ const TYPES: {key: TransactionType; label: string; icon: IconName}[] = [
   {key: 'expense', label: 'Expenses', icon: 'remove-circle-outline'},
   {key: 'income', label: 'Income', icon: 'add-circle-outline'},
   {key: 'transfer', label: 'Transfer', icon: 'swap-horiz'},
+];
+
+const REPEAT_FREQS: {key: RepeatFreq | null; label: string}[] = [
+  {key: null, label: 'No repeat'},
+  {key: 'daily', label: 'Daily'},
+  {key: 'weekly', label: 'Weekly'},
+  {key: 'monthly', label: 'Monthly'},
+  {key: 'yearly', label: 'Yearly'},
 ];
 
 const SEGMENT_SPRING = {damping: 24, stiffness: 260, mass: 0.7};
@@ -326,6 +334,9 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
   const [transferFrom, setTransferFrom] = useState<string>(editing?.walletId || '');
   const [transferTo, setTransferTo] = useState<string>(editing?.toWalletId || '');
   const [note, setNote] = useState(editing?.note || '');
+  const [repeatFreq, setRepeatFreq] = useState<RepeatFreq | null>(
+    editing?.repeat?.freq ?? null,
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -433,6 +444,12 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
       walletId: type === 'transfer' ? transferFrom : selectedWallet,
       toWalletId: type === 'transfer' ? transferTo : undefined,
       note: note.trim() || undefined,
+      repeat:
+        type === 'transfer' && repeatFreq ? undefined : repeatFreq ? {freq: repeatFreq} : undefined,
+      nextDue:
+        type !== 'transfer' && repeatFreq
+          ? editing?.nextDue || advanceByFreq(date, repeatFreq)
+          : undefined,
     };
 
     const ok = editing ? await updateExpense(expense) : await addExpense(expense);
@@ -441,7 +458,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
       return;
     }
     router.back();
-  }, [amount, date, selectedCategory, editing, router, type, wallets.length, selectedWallet, transferFrom, transferTo, note]);
+  }, [amount, date, selectedCategory, editing, router, type, wallets.length, selectedWallet, transferFrom, transferTo, note, repeatFreq]);
 
   const amountColor = type === 'income' ? COLORS.success : COLORS.text;
   const amountHint =
@@ -522,6 +539,24 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
               onSelect={setSelectedCategory}
               onAdd={() => router.push('/category')}
             />
+            <Text style={styles.categorySectionLabel}>Repeat</Text>
+            <View style={styles.repeatRow}>
+              {REPEAT_FREQS.map(r => (
+                <TouchableOpacity
+                  key={r.key ?? 'none'}
+                  style={[styles.repeatChip, repeatFreq === r.key && styles.repeatChipActive]}
+                  activeOpacity={0.7}
+                  onPress={() => setRepeatFreq(r.key)}>
+                  <Text
+                    style={[
+                      styles.repeatChipText,
+                      repeatFreq === r.key && styles.repeatChipTextActive,
+                    ]}>
+                    {r.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </>
         )}
         {wallets.length === 0 && (
@@ -847,6 +882,30 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 2,
     paddingHorizontal: 16,
+  },
+  repeatRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    gap: 8,
+  },
+  repeatChip: {
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+  },
+  repeatChipActive: {
+    backgroundColor: COLORS.primary,
+  },
+  repeatChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textLight,
+  },
+  repeatChipTextActive: {
+    color: COLORS.white,
   },
   categoryGrid: {
     flexDirection: 'row',

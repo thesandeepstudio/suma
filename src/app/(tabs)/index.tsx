@@ -12,7 +12,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BalanceCard from "../../components/BalanceCard";
 import ExpenseCard from "../../components/ExpenseCard";
-import { Expense, Category } from "../../types";
+import { Expense, Category, RepeatFreq } from "../../types";
 import { COLORS } from "../../utils/constants";
 import { getRelativeDate, formatCurrency, getCategoryLabel, groupExpensesByDay } from "../../utils/helpers";
 import {
@@ -23,7 +23,23 @@ import {
   getWalletTotal,
   getUsername,
   getBudget,
+  getUpcomingRecurring,
 } from "../../utils/storage";
+
+const FREQ_LABEL: Record<RepeatFreq, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
+
+const formatDueDate = (iso: string): string => {
+  const days = Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
 
 const DashboardScreen: React.FC = () => {
   const router = useRouter();
@@ -36,9 +52,10 @@ const DashboardScreen: React.FC = () => {
   const [todayCount, setTodayCount] = useState(0);
   const [username, setUsername] = useState('user');
   const [monthlyCap, setMonthlyCap] = useState<number | null>(null);
+  const [upcoming, setUpcoming] = useState<Expense[]>([]);
 
   const loadData = useCallback(async () => {
-    const [exp, cats, total, wallet, lastTotal, name, budget] = await Promise.all([
+    const [exp, cats, total, wallet, lastTotal, name, budget, upc] = await Promise.all([
       getExpenses(),
       getCategories(),
       getMonthlyTotal(),
@@ -46,6 +63,7 @@ const DashboardScreen: React.FC = () => {
       getLastMonthTotal(),
       getUsername(),
       getBudget(),
+      getUpcomingRecurring(),
     ]);
     const dayKey = (dateStr: string) => {
       const d = new Date(dateStr);
@@ -67,6 +85,7 @@ const DashboardScreen: React.FC = () => {
     setLastMonthTotal(lastTotal);
     setUsername(name);
     setMonthlyCap(budget.monthlyCap);
+    setUpcoming(upc);
   }, []);
 
   useFocusEffect(
@@ -133,6 +152,44 @@ const DashboardScreen: React.FC = () => {
           lastMonthTotal={lastMonthTotal}
           monthlyCap={monthlyCap}
         />
+
+        {upcoming.length > 0 && (
+          <>
+            <Text style={styles.sectionHeader}>Upcoming Recurring</Text>
+            <View style={styles.upcomingCard}>
+              {upcoming.map((u, i) => (
+                <View
+                  key={u.id}
+                  style={[styles.upcomingRow, i > 0 && styles.upcomingDivider]}
+                >
+                  <View style={styles.upcomingIconWrap}>
+                    <MaterialIcons name="autorenew" size={18} color={COLORS.text} />
+                  </View>
+                  <View style={styles.upcomingText}>
+                    <Text style={styles.upcomingName} numberOfLines={1}>
+                      {u.title}
+                    </Text>
+                    <Text style={styles.upcomingDate}>
+                      {u.repeat ? FREQ_LABEL[u.repeat.freq] : ""} · next{" "}
+                      {formatDueDate(u.nextDue as string)}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.upcomingAmount,
+                      (u.type ?? "expense") === "income"
+                        ? styles.incomeAmount
+                        : styles.expenseAmount,
+                    ]}
+                  >
+                    {(u.type ?? "expense") === "income" ? "+" : "-"}
+                    {formatCurrency(u.amount)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionHeader}>Recent Transactions</Text>
         {expenses.length === 0 ? (
@@ -309,6 +366,50 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: "600",
     fontSize: 14,
+  },
+  upcomingCard: {
+    marginHorizontal: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  upcomingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  upcomingDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+  },
+  upcomingIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  upcomingText: {
+    flex: 1,
+  },
+  upcomingName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+  upcomingDate: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 1,
+  },
+  upcomingAmount: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 8,
   },
 });
 

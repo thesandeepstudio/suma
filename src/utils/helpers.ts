@@ -1,4 +1,5 @@
 import {CURRENCIES, CurrencyOption} from './constants';
+import {RepeatFreq} from '../types';
 
 let activeCurrency: CurrencyOption = CURRENCIES[0];
 
@@ -10,6 +11,25 @@ export const getActiveCurrency = (): CurrencyOption => activeCurrency;
 
 export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
+export const advanceByFreq = (iso: string, freq: RepeatFreq): string => {
+  const d = new Date(iso);
+  switch (freq) {
+    case 'daily':
+      d.setDate(d.getDate() + 1);
+      break;
+    case 'weekly':
+      d.setDate(d.getDate() + 7);
+      break;
+    case 'monthly':
+      d.setMonth(d.getMonth() + 1);
+      break;
+    case 'yearly':
+      d.setFullYear(d.getFullYear() + 1);
+      break;
+  }
+  return d.toISOString();
 };
 
 export const formatCurrency = (amount: number): string => {
