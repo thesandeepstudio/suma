@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   chipAddIcon: {
-    backgroundColor: '#F1F1F4',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: COLORS.border,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   formBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: COLORS.backdrop,
   },
   formSheet: {
     backgroundColor: COLORS.background,

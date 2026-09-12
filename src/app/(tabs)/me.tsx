@@ -333,7 +333,7 @@ const SettingsScreen: React.FC = () => {
             activeOpacity={0.6}
             disabled={!!busy}
             onPress={handleClearAll}>
-            <View style={[styles.rowIcon, {backgroundColor: '#FFEBEE'}]}>
+            <View style={[styles.rowIcon, {backgroundColor: COLORS.dangerTint}]}>
               <MaterialIcons name="delete-forever" size={22} color={COLORS.danger} />
             </View>
             <View style={styles.rowText}>
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: COLORS.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {

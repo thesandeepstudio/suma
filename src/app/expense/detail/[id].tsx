@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F1F4',
+    backgroundColor: COLORS.surface,
     marginRight: 12,
   },
   rowLabel: {

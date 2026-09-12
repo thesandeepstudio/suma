@@ -55,7 +55,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: COLORS.white,
           borderTopColor: 'transparent',
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
@@ -65,15 +65,15 @@ export default function TabLayout() {
           paddingHorizontal: 5,
           paddingTop: 10,
           paddingBottom: 10,
-          shadowColor: '#000',
+          shadowColor: COLORS.shadow,
           shadowOffset: {width: 0, height: 8},
           shadowOpacity: 0.2,
           shadowRadius: 20,
           elevation: 12,
           position: 'absolute',
         },
-        tabBarActiveTintColor: '#111111',
-        tabBarInactiveTintColor: '#999999',
+        tabBarActiveTintColor: COLORS.danger,
+        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: '600',
@@ -133,16 +133,16 @@ export default function TabLayout() {
                     width: 52,
                     height: 52,
                     borderRadius: 26,
-                    backgroundColor: '#111111',
+                    backgroundColor: COLORS.danger,
                     justifyContent: 'center',
                     alignItems: 'center',
-                    shadowColor: '#000',
+                    shadowColor: COLORS.shadow,
                     shadowOffset: {width: 0, height: 4},
                     shadowOpacity: 0.25,
                     shadowRadius: 10,
                     elevation: 10,
                   }}>
-                  <MaterialIcons name="add" size={28} color="#FFFFFF" />
+                  <MaterialIcons name="add" size={28} color={COLORS.white} />
                 </View>
               </TouchableOpacity>
             );

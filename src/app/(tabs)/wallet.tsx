@@ -187,13 +187,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   totalLabel: {
-    color: "rgba(255,255,255,0.8)",
+    color: COLORS.onDarkText,
     fontSize: 14,
     fontWeight: "500",
   },
   totalStats: {
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: COLORS.onDarkChip,
     borderRadius: 12,
     padding: 16,
     marginTop: 18,
@@ -204,11 +204,11 @@ const styles = StyleSheet.create({
   },
   totalDivider: {
     width: 1,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: COLORS.onDarkChipStrong,
     marginHorizontal: 12,
   },
   totalStatLabel: {
-    color: "rgba(255,255,255,0.7)",
+    color: COLORS.onDarkTextDim,
     fontSize: 11,
   },
   totalStatValue: {
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   totalSub: {
-    color: "rgba(255,255,255,0.6)",
+    color: COLORS.onDarkTextFaint,
     fontSize: 13,
     marginTop: 4,
   },

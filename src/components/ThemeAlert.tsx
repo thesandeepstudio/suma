@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: COLORS.backdrop,
     paddingHorizontal: 40,
   },
   sheet: {
@@ -129,10 +129,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   buttonCancel: {
-    backgroundColor: '#F1F1F4',
+    backgroundColor: COLORS.surface,
   },
   buttonDestructive: {
-    backgroundColor: '#EDEDED',
+    backgroundColor: COLORS.surfaceStrong,
   },
   buttonText: {
     fontSize: 15,

@@ -21,9 +21,9 @@ import {getTrend, getMonthSummary, TrendPoint, TrendRange} from '../../utils/sto
 import {formatCurrency} from '../../utils/helpers';
 import {COLORS} from '../../utils/constants';
 
-const LINE_SPENDING = '#111111';
-const LINE_INCOME = '#A0A0A0';
-const GRID_COLOR = '#ECECEC';
+const LINE_SPENDING = COLORS.danger;
+const LINE_INCOME = COLORS.chartIncome;
+const GRID_COLOR = COLORS.grid;
 const CHART_HEIGHT = 190;
 const PAD_TOP = 16;
 const PAD_BOTTOM = 10;
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   rangeRow: {
     flexDirection: 'row',
-    backgroundColor: '#F1F1F4',
+    backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 3,
   },

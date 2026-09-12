@@ -52,7 +52,7 @@ const BalanceCard: React.FC<Props> = ({
       <View style={styles.row}>
         <View style={styles.statBox}>
           <View style={styles.statHeader}>
-            <MaterialIcons name="account-balance-wallet" size={16} color="#E5E5E5" />
+            <MaterialIcons name="account-balance-wallet" size={16} color={COLORS.iconMuted} />
             <Text style={styles.statLabel}>Available</Text>
           </View>
           <Text style={styles.statValue}>
@@ -62,7 +62,7 @@ const BalanceCard: React.FC<Props> = ({
         <View style={styles.divider} />
         <View style={styles.statBox}>
           <View style={styles.statHeader}>
-            <MaterialIcons name="compare-arrows" size={16} color="#9E9E9E" />
+            <MaterialIcons name="compare-arrows" size={16} color={COLORS.textMuted} />
             <Text style={styles.statLabel}>Daily Avg</Text>
           </View>
           <Text style={styles.statValue}>
@@ -97,13 +97,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   trendText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: COLORS.onDarkText,
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
   },
   label: {
-    color: 'rgba(255,255,255,0.8)',
+    color: COLORS.onDarkText,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   subtext: {
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.onDarkTextFaint,
     fontSize: 13,
     marginTop: 4,
   },
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.onDarkChip,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 4,
@@ -139,11 +139,11 @@ const styles = StyleSheet.create({
   },
   divider: {
     width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: COLORS.onDarkChipStrong,
     marginVertical: 4,
   },
   statLabel: {
-    color: 'rgba(255,255,255,0.7)',
+    color: COLORS.onDarkTextDim,
     fontSize: 12,
     marginLeft: 6,
   },

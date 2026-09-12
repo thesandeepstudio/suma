@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     borderRadius: 18,
     padding: 4,
-    backgroundColor: '#F1F1F4',
+    backgroundColor: 'COLORS.surface',
   },
   segmentCapsule: {
     position: 'absolute',
@@ -873,7 +873,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F1F4',
+    backgroundColor: 'COLORS.surface',
   },
   categoryChipName: {
     fontSize: 10,
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   categoryChipAddIcon: {
-    backgroundColor: '#F1F1F4',
+    backgroundColor: 'COLORS.surface',
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: COLORS.border,
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'COLORS.backdrop',
   },
   modalSheet: {
     backgroundColor: COLORS.background,
@@ -940,10 +940,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F1F4',
+    backgroundColor: 'COLORS.surface',
   },
   modalIconWrapActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'COLORS.onDarkChipStrong',
   },
   modalRowText: {
     flex: 1,
