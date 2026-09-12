@@ -4,7 +4,7 @@ import {useRouter} from 'expo-router';
 export default function AddTab() {
   const router = useRouter();
   useEffect(() => {
-    router.replace('/');
+    router.replace('/expense');
   }, [router]);
   return null;
 }

@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { Wallet, IconName } from "@/types";
 import { COLORS } from "@/utils/constants";
 import { addWallet, updateWallet } from "@/utils/storage";
-import { generateId } from "@/utils/helpers";
+import { generateId, getActiveCurrency } from "@/utils/helpers";
 import { showThemeAlert } from "@/components/ThemeAlert";
 
 const ACCOUNT_ICONS: IconName[] = [
@@ -54,6 +54,7 @@ const WalletForm: React.FC<Props> = ({ editing }) => {
       return;
     }
 
+    let ok: boolean;
     if (editing) {
       const updated: Wallet = {
         ...editing,
@@ -61,7 +62,7 @@ const WalletForm: React.FC<Props> = ({ editing }) => {
         currentBalance: parsedBalance,
         icon,
       };
-      await updateWallet(updated);
+      ok = await updateWallet(updated);
     } else {
       const wallet: Wallet = {
         id: generateId(),
@@ -71,7 +72,11 @@ const WalletForm: React.FC<Props> = ({ editing }) => {
         createdAt: new Date().toISOString(),
         icon,
       };
-      await addWallet(wallet);
+      ok = await addWallet(wallet);
+    }
+    if (!ok) {
+      showThemeAlert("Error", "Could not save the account. Try again.");
+      return;
     }
     router.back();
   };
@@ -96,7 +101,7 @@ const WalletForm: React.FC<Props> = ({ editing }) => {
           {editing ? "Current Balance" : "Initial Balance"}
         </Text>
         <View style={styles.amountWrap}>
-          <Text style={styles.currencySymbol}>NPR</Text>
+          <Text style={styles.currencySymbol}>{getActiveCurrency().symbol}</Text>
           <TextInput
             style={styles.amountInput}
             value={balance}

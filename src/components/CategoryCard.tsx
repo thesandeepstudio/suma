@@ -2,6 +2,7 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
 import {COLORS} from '../utils/constants';
+import {getActiveCurrency} from '../utils/helpers';
 
 interface Props {
   name: string;
@@ -21,7 +22,7 @@ const CategoryCard: React.FC<Props> = ({name, icon, color, amount, onPress}) => 
         {name}
       </Text>
       {amount !== undefined && (
-        <Text style={[styles.amount, {color}]}>{`NPR ${amount.toFixed(0)}`}</Text>
+        <Text style={[styles.amount, {color}]}>{`${getActiveCurrency().symbol} ${amount.toFixed(0)}`}</Text>
       )}
     </TouchableOpacity>
   );

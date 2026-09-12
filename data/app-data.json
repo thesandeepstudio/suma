@@ -399,120 +399,92 @@
     {
       "id": "1",
       "name": "Food & Dining",
-      "icon": "restaurant",
-      "color": "#111111"
+      "icon": "restaurant"
     },
     {
       "id": "2",
       "name": "Transport",
-      "icon": "directions-car",
-      "color": "#3F3F46"
+      "icon": "directions-car"
     },
     {
       "id": "3",
       "name": "Shopping",
-      "icon": "shopping-bag",
-      "color": "#5F5F5F"
+      "icon": "shopping-bag"
     },
     {
       "id": "4",
       "name": "Entertainment",
-      "icon": "movie",
-      "color": "#7F7F7F"
+      "icon": "movie"
     },
     {
       "id": "5",
       "name": "Bills & Utilities",
-      "icon": "receipt",
-      "color": "#2B2B2B"
+      "icon": "receipt"
     },
     {
       "id": "6",
       "name": "Health",
-      "icon": "local-hospital",
-      "color": "#4B4B4B"
+      "icon": "local-hospital"
     },
     {
       "id": "7",
       "name": "Education",
-      "icon": "school",
-      "color": "#8B8B8B"
+      "icon": "school"
     },
     {
       "id": "8",
       "name": "Other",
-      "icon": "more-horiz",
-      "color": "#000000"
+      "icon": "more-horiz"
     },
     {
       "id": "9",
       "name": "Borrow",
-      "icon": "arrow-downward",
-      "color": "#8E8E8E"
+      "icon": "arrow-downward"
     },
     {
       "id": "10",
       "name": "Khaja",
-      "icon": "lunch-dining",
-      "color": "#333333"
+      "icon": "lunch-dining"
     },
     {
       "id": "11",
       "name": "Transaction Fee",
-      "icon": "receipt-long",
-      "color": "#A9A9A9"
+      "icon": "receipt-long"
     },
     {
       "id": "12",
       "name": "Credit",
-      "icon": "credit-card",
-      "color": "#6B6B6B"
-    },
-    {
-      "id": "13",
-      "name": "Drinks",
-      "icon": "local-drink",
-      "color": "#222222"
+      "icon": "credit-card"
     },
     {
       "id": "13-1",
       "name": "chiya",
-      "icon": "local-cafe",
-      "color": "#6B4F3A",
-      "parentId": "13"
+      "icon": "local-cafe"
     },
     {
       "id": "13-2",
       "name": "cold drink",
-      "icon": "local-drink",
-      "color": "#3F84C5",
-      "parentId": "13"
+      "icon": "local-drink"
     },
     {
       "id": "13-3",
       "name": "coke",
-      "icon": "local-drink",
-      "color": "#8C2F2F",
-      "parentId": "13"
+      "icon": "local-drink"
     },
     {
       "id": "13-4",
       "name": "Beverages",
-      "icon": "local-drink",
-      "color": "#7F7F7F",
-      "parentId": "13"
+      "icon": "local-drink"
     },
     {
       "id": "14",
       "name": "Sports",
-      "icon": "fitness-center",
-      "color": "#5F5F5F"
+      "icon": "fitness-center"
     },
     {
       "id": "15",
       "name": "Receipt",
-      "icon": "receipt",
-      "color": "#6B6B6B"
+      "icon": "receipt"
     }
   ]
 }

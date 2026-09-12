@@ -7,7 +7,6 @@ import {formatCurrency, getRelativeDate} from '../utils/helpers';
 
 interface Props {
   expense: Expense;
-  categoryColor: string;
   categoryIcon: string;
   onPress: () => void;
   categoryLabel?: string;
@@ -15,15 +14,14 @@ interface Props {
 
 const ExpenseCard: React.FC<Props> = ({
   expense,
-  categoryColor,
   categoryIcon,
   onPress,
   categoryLabel,
 }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.iconBox, {backgroundColor: categoryColor + '20'}]}>
-        <MaterialIcons name={categoryIcon as any} size={24} color={categoryColor} />
+      <View style={[styles.iconBox]}>
+        <MaterialIcons name={categoryIcon as any} size={24} color={COLORS.text} />
       </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
@@ -39,18 +37,23 @@ const ExpenseCard: React.FC<Props> = ({
         ) : null}
       </View>
       <View style={styles.right}>
-        <Text
-          style={[
-            styles.amount,
-            expense.type === 'income'
-              ? styles.incomeAmount
-              : expense.type === 'transfer'
-              ? styles.transferAmount
-              : null,
-          ]}>
-          {expense.type === 'income' ? '+' : '-'}
-          {formatCurrency(expense.amount)}
-        </Text>
+        {expense.type === 'transfer' ? (
+          <View style={styles.transferRow}>
+            <MaterialIcons name="swap-horiz" size={15} color={COLORS.warning} />
+            <Text style={[styles.amount, styles.transferAmount]}>
+              {formatCurrency(expense.amount)}
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[
+              styles.amount,
+              expense.type === 'income' ? styles.incomeAmount : null,
+            ]}>
+            {expense.type === 'income' ? '+' : '-'}
+            {formatCurrency(expense.amount)}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -77,6 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.text + '12',
   },
   info: {
     flex: 1,
@@ -99,6 +103,11 @@ const styles = StyleSheet.create({
   },
   right: {
     alignItems: 'flex-end',
+  },
+  transferRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   amount: {
     fontSize: 15,

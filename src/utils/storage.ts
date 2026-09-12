@@ -1,9 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Expense, Category, Wallet} from '../types';
+import {Expense, Category, Wallet, Budget} from '../types';
 import {STORAGE_KEYS, DEFAULT_CATEGORIES} from './constants';
 import appData from '../../data/app-data.json';
 
 const SEED_VERSION = appData.seedVersion;
+
+const DEFAULT_BUDGET: Budget = {monthlyCap: null, categoryCaps: {}};
+
+const isSpendingExpense = (e: Expense): boolean =>
+  (e.type ?? 'expense') === 'expense' &&
+  e.category !== 'Borrow' &&
+  e.category !== 'Credit';
 
 export const getUsername = async (): Promise<string> => {
   try {
@@ -13,8 +20,13 @@ export const getUsername = async (): Promise<string> => {
   }
 };
 
-export const setUsername = async (name: string): Promise<void> => {
-  await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, name);
+export const setUsername = async (name: string): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.USERNAME, name);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const getCurrency = async (): Promise<string> => {
@@ -25,8 +37,13 @@ export const getCurrency = async (): Promise<string> => {
   }
 };
 
-export const setCurrency = async (currency: string): Promise<void> => {
-  await AsyncStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
+export const setCurrency = async (currency: string): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.CURRENCY, currency);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const getCategoryOrder = async (): Promise<Record<string, string[]>> => {
@@ -40,8 +57,57 @@ export const getCategoryOrder = async (): Promise<Record<string, string[]>> => {
 
 export const setCategoryOrder = async (
   order: Record<string, string[]>,
-): Promise<void> => {
-  await AsyncStorage.setItem(STORAGE_KEYS.CATEGORY_ORDER, JSON.stringify(order));
+): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.CATEGORY_ORDER, JSON.stringify(order));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const getWalletOrder = async (): Promise<string[]> => {
+  try {
+    const json = await AsyncStorage.getItem(STORAGE_KEYS.WALLET_ORDER);
+    return json ? JSON.parse(json) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setWalletOrder = async (order: string[]): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.WALLET_ORDER, JSON.stringify(order));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const getBudget = async (): Promise<Budget> => {
+  try {
+    const json = await AsyncStorage.getItem(STORAGE_KEYS.BUDGET);
+    if (!json) return DEFAULT_BUDGET;
+    const parsed = JSON.parse(json);
+    return {
+      monthlyCap: typeof parsed.monthlyCap === 'number' ? parsed.monthlyCap : null,
+      categoryCaps:
+        parsed.categoryCaps && typeof parsed.categoryCaps === 'object'
+          ? parsed.categoryCaps
+          : {},
+    };
+  } catch {
+    return DEFAULT_BUDGET;
+  }
+};
+
+export const setBudget = async (budget: Budget): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.BUDGET, JSON.stringify(budget));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const getExpenses = async (): Promise<Expense[]> => {
@@ -58,17 +124,24 @@ export const getTransactionCount = async (): Promise<number> => {
   return expenses.length;
 };
 
-export const clearAllData = async (): Promise<void> => {
-  await AsyncStorage.multiRemove([
-    STORAGE_KEYS.EXPENSES,
-    STORAGE_KEYS.CATEGORIES,
-    STORAGE_KEYS.WALLETS,
-    STORAGE_KEYS.BUDGET,
-    STORAGE_KEYS.SEED_VERSION,
-    STORAGE_KEYS.USERNAME,
-    STORAGE_KEYS.CURRENCY,
-    STORAGE_KEYS.CATEGORY_ORDER,
-  ]);
+export const clearAllData = async (): Promise<boolean> => {
+  try {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.EXPENSES,
+      STORAGE_KEYS.CATEGORIES,
+      STORAGE_KEYS.WALLETS,
+      STORAGE_KEYS.BUDGET,
+      STORAGE_KEYS.SEED_VERSION,
+      STORAGE_KEYS.USERNAME,
+      STORAGE_KEYS.CURRENCY,
+      STORAGE_KEYS.CATEGORY_ORDER,
+      STORAGE_KEYS.WALLET_ORDER,
+      STORAGE_KEYS.DELETED_SEED_IDS,
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const seedInitialData = async (): Promise<void> => {
@@ -97,18 +170,41 @@ export const seedInitialData = async (): Promise<void> => {
 
 const ensureSeedRecords = async (): Promise<void> => {
   const categories = await getCategories();
-  const flattened = categories
-    .filter(c => !categories.some(x => x.parentId === c.id))
-    .map(c => ({...c, parentId: undefined}));
-  const defaultLeaves = DEFAULT_CATEGORIES.filter(
-    d => !DEFAULT_CATEGORIES.some(x => x.parentId === d.id),
-  );
-  const merged = defaultLeaves.map(d => {
-    const existing = flattened.find(c => c.name === d.name);
-    return existing ? {...existing, parentId: undefined} : {...d, parentId: undefined};
+  const cleaned = categories.map(c => {
+    const {parentId: _drop, ...rest} = c as Category & {parentId?: string};
+    return rest;
   });
-  const custom = flattened.filter(c => !defaultLeaves.some(d => d.name === c.name));
+  const deletedIds = await getDeletedSeedIds();
+  const merged = DEFAULT_CATEGORIES.filter(d => !deletedIds.includes(d.id)).map(
+    d => {
+      const existing = cleaned.find(c => c.id === d.id);
+      return existing ? {...existing} : {...d};
+    },
+  );
+  const custom = cleaned.filter(c => !DEFAULT_CATEGORIES.some(d => d.id === c.id));
   await saveCategories([...merged, ...custom]);
+};
+
+const getDeletedSeedIds = async (): Promise<string[]> => {
+  try {
+    const json = await AsyncStorage.getItem(STORAGE_KEYS.DELETED_SEED_IDS);
+    return json ? JSON.parse(json) : [];
+  } catch {
+    return [];
+  }
+};
+
+const markDeletedSeedId = async (id: string): Promise<void> => {
+  try {
+    const ids = await getDeletedSeedIds();
+    if (ids.includes(id)) return;
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.DELETED_SEED_IDS,
+      JSON.stringify([...ids, id]),
+    );
+  } catch {
+    // Non-critical bookkeeping; ignore write failures
+  }
 };
 
 export const getDebt = async (): Promise<number> => {
@@ -133,34 +229,54 @@ export const getReceivable = async (): Promise<number> => {
   return Math.max(0, lent - returned);
 };
 
-export const saveExpenses = async (expenses: Expense[]): Promise<void> => {
-  await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
+export const saveExpenses = async (expenses: Expense[]): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
-export const addExpense = async (expense: Expense): Promise<void> => {
-  const expenses = await getExpenses();
-  expenses.unshift(expense);
-  await saveExpenses(expenses);
-  await applyRecordEffect(expense, 1);
+export const addExpense = async (expense: Expense): Promise<boolean> => {
+  try {
+    const expenses = await getExpenses();
+    expenses.unshift(expense);
+    await saveExpenses(expenses);
+    await applyRecordEffect(expense, 1);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
-export const updateExpense = async (updated: Expense): Promise<void> => {
-  const expenses = await getExpenses();
-  const idx = expenses.findIndex(e => e.id === updated.id);
-  if (idx === -1) return;
-  const previous = expenses[idx];
-  expenses[idx] = updated;
-  await saveExpenses(expenses);
-  await applyRecordEffect(previous, -1);
-  await applyRecordEffect(updated, 1);
+export const updateExpense = async (updated: Expense): Promise<boolean> => {
+  try {
+    const expenses = await getExpenses();
+    const idx = expenses.findIndex(e => e.id === updated.id);
+    if (idx === -1) return false;
+    const previous = expenses[idx];
+    expenses[idx] = updated;
+    await saveExpenses(expenses);
+    await applyRecordEffect(previous, -1);
+    await applyRecordEffect(updated, 1);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
-export const deleteExpense = async (id: string): Promise<void> => {
-  const expenses = await getExpenses();
-  const target = expenses.find(e => e.id === id);
-  await saveExpenses(expenses.filter(e => e.id !== id));
-  if (target) {
-    await applyRecordEffect(target, -1);
+export const deleteExpense = async (id: string): Promise<boolean> => {
+  try {
+    const expenses = await getExpenses();
+    const target = expenses.find(e => e.id === id);
+    await saveExpenses(expenses.filter(e => e.id !== id));
+    if (target) {
+      await applyRecordEffect(target, -1);
+    }
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -203,28 +319,76 @@ export const getCategories = async (): Promise<Category[]> => {
   }
 };
 
-export const saveCategories = async (categories: Category[]): Promise<void> => {
-  await AsyncStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-};
-
-export const addCategory = async (category: Category): Promise<void> => {
-  const categories = await getCategories();
-  categories.push(category);
-  await saveCategories(categories);
-};
-
-export const updateCategory = async (updated: Category): Promise<void> => {
-  const categories = await getCategories();
-  const idx = categories.findIndex(c => c.id === updated.id);
-  if (idx !== -1) {
-    categories[idx] = updated;
-    await saveCategories(categories);
+export const saveCategories = async (categories: Category[]): Promise<boolean> => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    return true;
+  } catch {
+    return false;
   }
 };
 
-export const deleteCategory = async (id: string): Promise<void> => {
-  const categories = await getCategories();
-  await saveCategories(categories.filter(c => c.id !== id && c.parentId !== id));
+export const addCategory = async (category: Category): Promise<boolean> => {
+  try {
+    const categories = await getCategories();
+    categories.push(category);
+    return await saveCategories(categories);
+  } catch {
+    return false;
+  }
+};
+
+export const updateCategory = async (updated: Category): Promise<boolean> => {
+  try {
+    const categories = await getCategories();
+    const idx = categories.findIndex(c => c.id === updated.id);
+    if (idx === -1) return false;
+    const oldName = categories[idx].name;
+    if (oldName !== updated.name) {
+      const expenses = await getExpenses();
+      const migrated = expenses.map(e =>
+        e.category === oldName ? {...e, category: updated.name} : e,
+      );
+      if (migrated.length !== expenses.length) {
+        await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(migrated));
+      }
+      const budget = await getBudget();
+      if (budget.categoryCaps[oldName] != null) {
+        const categoryCaps = {...budget.categoryCaps};
+        delete categoryCaps[oldName];
+        categoryCaps[updated.name] = budget.categoryCaps[oldName];
+        await setBudget({...budget, categoryCaps});
+      }
+    }
+    categories[idx] = updated;
+    return await saveCategories(categories);
+  } catch {
+    return false;
+  }
+};
+
+export const deleteCategory = async (id: string): Promise<number> => {
+  try {
+    const categories = await getCategories();
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return 0;
+    const expenses = await getExpenses();
+    const count = expenses.filter(e => e.category === cat.name).length;
+    if (count > 0) return count;
+    const budget = await getBudget();
+    if (budget.categoryCaps[cat.name] != null) {
+      const categoryCaps = {...budget.categoryCaps};
+      delete categoryCaps[cat.name];
+      await setBudget({...budget, categoryCaps});
+    }
+    if (DEFAULT_CATEGORIES.some(d => d.id === cat.id)) {
+      await markDeletedSeedId(cat.id);
+    }
+    await saveCategories(categories.filter(c => c.id !== id));
+    return 0;
+  } catch {
+    return -1;
+  }
 };
 
 export const getWallets = async (): Promise<Wallet[]> => {
@@ -236,27 +400,46 @@ export const getWallets = async (): Promise<Wallet[]> => {
   }
 };
 
-export const addWallet = async (wallet: Wallet): Promise<void> => {
-  const wallets = await getWallets();
-  wallets.unshift(wallet);
-  await AsyncStorage.setItem(STORAGE_KEYS.WALLETS, JSON.stringify(wallets));
-};
-
-export const updateWallet = async (updated: Wallet): Promise<void> => {
-  const wallets = await getWallets();
-  const idx = wallets.findIndex(w => w.id === updated.id);
-  if (idx !== -1) {
-    wallets[idx] = updated;
+export const addWallet = async (wallet: Wallet): Promise<boolean> => {
+  try {
+    const wallets = await getWallets();
+    wallets.unshift(wallet);
     await AsyncStorage.setItem(STORAGE_KEYS.WALLETS, JSON.stringify(wallets));
+    return true;
+  } catch {
+    return false;
   }
 };
 
-export const deleteWallet = async (id: string): Promise<void> => {
-  const wallets = await getWallets();
-  await AsyncStorage.setItem(
-    STORAGE_KEYS.WALLETS,
-    JSON.stringify(wallets.filter(w => w.id !== id)),
-  );
+export const updateWallet = async (updated: Wallet): Promise<boolean> => {
+  try {
+    const wallets = await getWallets();
+    const idx = wallets.findIndex(w => w.id === updated.id);
+    if (idx === -1) return false;
+    wallets[idx] = updated;
+    await AsyncStorage.setItem(STORAGE_KEYS.WALLETS, JSON.stringify(wallets));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const deleteWallet = async (id: string): Promise<number> => {
+  try {
+    const wallets = await getWallets();
+    if (!wallets.some(w => w.id === id)) return 0;
+    const expenses = await getExpenses();
+    const count = expenses.filter(e => e.walletId === id || e.toWalletId === id)
+      .length;
+    if (count > 0) return count;
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.WALLETS,
+      JSON.stringify(wallets.filter(w => w.id !== id)),
+    );
+    return 0;
+  } catch {
+    return -1;
+  }
 };
 
 export const getWalletTotal = async (): Promise<number> => {
@@ -269,34 +452,54 @@ export interface BackupData {
   transactions: Expense[];
   categories: Category[];
   wallets: Wallet[];
+  budget?: Budget;
+  deletedSeedIds?: string[];
 }
 
 export const getAllData = async (): Promise<BackupData> => {
-  const [transactions, categories, wallets] = await Promise.all([
-    getExpenses(),
-    getCategories(),
-    getWallets(),
-  ]);
-  return {seedVersion: SEED_VERSION, transactions, categories, wallets};
+  const [transactions, categories, wallets, budget, deletedSeedIds] =
+    await Promise.all([
+      getExpenses(),
+      getCategories(),
+      getWallets(),
+      getBudget(),
+      getDeletedSeedIds(),
+    ]);
+  return {
+    seedVersion: SEED_VERSION,
+    transactions,
+    categories,
+    wallets,
+    budget,
+    deletedSeedIds,
+  };
 };
 
 export const restoreAllData = async (data: BackupData): Promise<boolean> => {
-  if (
-    !data ||
-    !Array.isArray(data.transactions) ||
-    !Array.isArray(data.categories) ||
-    !Array.isArray(data.wallets)
-  ) {
+  try {
+    if (
+      !data ||
+      !Array.isArray(data.transactions) ||
+      !Array.isArray(data.categories) ||
+      !Array.isArray(data.wallets)
+    ) {
+      return false;
+    }
+    const budget = data.budget ?? DEFAULT_BUDGET;
+    const deletedSeedIds = data.deletedSeedIds ?? [];
+    await AsyncStorage.multiSet([
+      [STORAGE_KEYS.EXPENSES, JSON.stringify(data.transactions)],
+      [STORAGE_KEYS.CATEGORIES, JSON.stringify(data.categories)],
+      [STORAGE_KEYS.WALLETS, JSON.stringify(data.wallets)],
+      [STORAGE_KEYS.BUDGET, JSON.stringify(budget)],
+      [STORAGE_KEYS.DELETED_SEED_IDS, JSON.stringify(deletedSeedIds)],
+      [STORAGE_KEYS.SEED_VERSION, SEED_VERSION],
+    ]);
+    await ensureSeedRecords();
+    return true;
+  } catch {
     return false;
   }
-  await AsyncStorage.multiSet([
-    [STORAGE_KEYS.EXPENSES, JSON.stringify(data.transactions)],
-    [STORAGE_KEYS.CATEGORIES, JSON.stringify(data.categories)],
-    [STORAGE_KEYS.WALLETS, JSON.stringify(data.wallets)],
-    [STORAGE_KEYS.SEED_VERSION, SEED_VERSION],
-  ]);
-  await ensureSeedRecords();
-  return true;
 };
 
 export const getMonthlyTotal = async (): Promise<number> => {
@@ -321,9 +524,7 @@ const sumForMonth = (
     .filter(e => {
       const d = new Date(e.date);
       return (
-        (e.type ?? 'expense') === 'expense' &&
-        e.category !== 'Borrow' &&
-        e.category !== 'Credit' &&
+        isSpendingExpense(e) &&
         d.getMonth() === month &&
         d.getFullYear() === year
       );
@@ -338,9 +539,7 @@ export const getCategoryTotals = async (): Promise<Record<string, number>> => {
     .filter(e => {
       const d = new Date(e.date);
       return (
-        (e.type ?? 'expense') === 'expense' &&
-        e.category !== 'Borrow' &&
-        e.category !== 'Credit' &&
+        isSpendingExpense(e) &&
         d.getMonth() === now.getMonth() &&
         d.getFullYear() === now.getFullYear()
       );
@@ -375,10 +574,8 @@ export const getMonthlyTrend = async (months = 6): Promise<MonthPoint[]> => {
     const d = new Date(e.date);
     const point = points.find(p => p.key === `${d.getFullYear()}-${d.getMonth()}`);
     if (!point) continue;
-    const type = e.type ?? 'expense';
-    if (type === 'expense' && e.category !== 'Borrow' && e.category !== 'Credit')
-      point.expense += e.amount;
-    else if (type === 'income' && e.category !== 'Credit')
+    if (isSpendingExpense(e)) point.expense += e.amount;
+    else if (e.type === 'income' && e.category !== 'Credit')
       point.income += e.amount;
   }
   return points;
@@ -397,10 +594,8 @@ const trendMetrics = (bucketExpenses: Expense[]): {expense: number; income: numb
   let expense = 0;
   let income = 0;
   for (const e of bucketExpenses) {
-    const t = e.type ?? 'expense';
-    if (t === 'income' && e.category !== 'Credit') income += e.amount;
-    else if (t === 'expense' && e.category !== 'Borrow' && e.category !== 'Credit')
-      expense += e.amount;
+    if (isSpendingExpense(e)) expense += e.amount;
+    else if (e.type === 'income' && e.category !== 'Credit') income += e.amount;
   }
   return {expense, income};
 };

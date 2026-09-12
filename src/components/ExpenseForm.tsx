@@ -22,8 +22,8 @@ import Animated, {
 import {useFocusEffect, useRouter} from 'expo-router';
 import {Category, Expense, IconName, TransactionType, Wallet} from '@/types';
 import {COLORS} from '@/utils/constants';
-import {getCategories, getWallets, addExpense, updateExpense, getCategoryOrder, setCategoryOrder} from '@/utils/storage';
-import {generateId, formatCurrency} from '@/utils/helpers';
+import {getCategories, getWallets, addExpense, updateExpense, getCategoryOrder, setCategoryOrder, getWalletOrder, setWalletOrder} from '@/utils/storage';
+import {generateId, formatCurrency, getActiveCurrency} from '@/utils/helpers';
 import {showThemeAlert} from '@/components/ThemeAlert';
 import CustomCalendar from '@/components/CustomCalendar';
 
@@ -242,7 +242,7 @@ const CategoryPickerField: React.FC<{
     });
   }, []);
 
-  const leaves = categories.filter(c => !categories.some(x => x.parentId === c.id));
+  const leaves = categories;
 
   const groupKey = '__mains';
   const remembered = (orderMap[groupKey] || []).filter(id => leaves.some(c => c.id === id));
@@ -268,21 +268,21 @@ const CategoryPickerField: React.FC<{
             key={category.id}
             style={[
               styles.categoryChip,
-              active && {borderColor: category.color, backgroundColor: category.color + '12'},
+              active && {borderColor: COLORS.primary, backgroundColor: COLORS.primary + '12'},
             ]}
             activeOpacity={0.7}
             onPress={() => {
               onSelect(category.name);
               moveToFront(category.id);
             }}>
-            <View style={[styles.categoryChipIcon, active && {backgroundColor: category.color + '1F'}]}>
+            <View style={[styles.categoryChipIcon, active && {backgroundColor: COLORS.primary + '1F'}]}>
               <MaterialIcons
                 name={category.icon as any}
                 size={22}
-                color={active ? category.color : COLORS.textMuted}
+                color={active ? COLORS.primary : COLORS.textMuted}
               />
             </View>
-            <Text style={[styles.categoryChipName, active && {color: category.color}]} numberOfLines={1}>
+            <Text style={[styles.categoryChipName, active && {color: COLORS.primary}]} numberOfLines={1}>
               {category.name}
             </Text>
           </TouchableOpacity>
@@ -336,14 +336,21 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
         }
       });
       getWallets().then(wall => {
-        setWallets(wall);
-        if (!editing?.walletId && !editing?.toWalletId) {
-          if (wall.length > 0) {
-            if (!selectedWallet) setSelectedWallet(wall[0].id);
-            if (!transferFrom) setTransferFrom(wall[0].id);
-            if (!transferTo && wall.length > 1) setTransferTo(wall[1].id);
+        getWalletOrder().then(savedOrder => {
+          const remembered = (savedOrder || []).filter(id => wall.some(w => w.id === id));
+          const ordered = [
+            ...remembered.map(id => wall.find(w => w.id === id)).filter((w): w is Wallet => Boolean(w)),
+            ...wall.filter(w => !remembered.includes(w.id)),
+          ];
+          setWallets(ordered);
+          if (!editing?.walletId && !editing?.toWalletId) {
+            if (ordered.length > 0) {
+              if (!selectedWallet) setSelectedWallet(ordered[0].id);
+              if (!transferFrom) setTransferFrom(ordered[0].id);
+              if (!transferTo && ordered.length > 1) setTransferTo(ordered[1].id);
+            }
           }
-        }
+        });
       });
     }, [selectedCategory, selectedWallet, transferFrom, transferTo, editing]),
   );
@@ -370,6 +377,18 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
     }
     setType(key);
   };
+
+  const bumpWalletOrder = useCallback((id: string) => {
+    setWallets(prev => {
+      const [current] = prev.filter(w => w.id === id);
+      if (prev.length === 0 || prev[0]?.id === id) return prev;
+      const rest = prev.filter(w => w.id !== id);
+      return current ? [current, ...rest] : prev;
+    });
+    getWalletOrder().then(order => {
+      setWalletOrder([id, ...(order || []).filter(x => x !== id)]);
+    });
+  }, []);
 
   const capsuleStyle = useAnimatedStyle(() => ({
     width: capsuleW.value,
@@ -416,10 +435,10 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
       note: note.trim() || undefined,
     };
 
-    if (editing) {
-      await updateExpense(expense);
-    } else {
-      await addExpense(expense);
+    const ok = editing ? await updateExpense(expense) : await addExpense(expense);
+    if (!ok) {
+      showThemeAlert('Error', 'Could not save the transaction. Try again.');
+      return;
     }
     router.back();
   }, [amount, date, selectedCategory, editing, router, type, wallets.length, selectedWallet, transferFrom, transferTo, note]);
@@ -477,7 +496,7 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
       <View style={styles.hero}>
         <Text style={styles.heroCaption}>{amountHint}</Text>
         <View style={styles.heroRow}>
-          <Text style={[styles.heroCurrency, {color: amountColor}]}>NPR</Text>
+          <Text style={[styles.heroCurrency, {color: amountColor}]}>{getActiveCurrency().symbol}</Text>
           <TextInput
             style={[styles.heroInput, {color: amountColor}]}
             value={amount}
@@ -544,14 +563,20 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
                   label="From"
                   wallets={wallets}
                   selectedId={transferFrom}
-                  onSelect={setTransferFrom}
+                  onSelect={id => {
+                    setTransferFrom(id);
+                    bumpWalletOrder(id);
+                  }}
                   sign="-"
                 />
                 <WalletPickerField
                   label="To"
                   wallets={wallets}
                   selectedId={transferTo}
-                  onSelect={setTransferTo}
+                  onSelect={id => {
+                    setTransferTo(id);
+                    bumpWalletOrder(id);
+                  }}
                   sign="+"
                 />
               </>
@@ -560,7 +585,10 @@ const ExpenseForm: React.FC<Props> = ({editing}) => {
                 label={type === 'income' ? 'To' : 'From'}
                 wallets={wallets}
                 selectedId={selectedWallet}
-                onSelect={setSelectedWallet}
+                onSelect={id => {
+                  setSelectedWallet(id);
+                  bumpWalletOrder(id);
+                }}
                 sign={type === 'income' ? '+' : '-'}
               />
             )}
@@ -825,12 +853,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    gap: 10,
+    gap: 8,
   },
   categoryChip: {
-    flexBasis: '22%',
-    flexGrow: 1,
-    maxWidth: '25%',
+    width: '23%',
+    flexGrow: 0,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,

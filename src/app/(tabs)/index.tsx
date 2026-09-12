@@ -22,6 +22,7 @@ import {
   getLastMonthTotal,
   getWalletTotal,
   getUsername,
+  getBudget,
 } from "../../utils/storage";
 
 const DashboardScreen: React.FC = () => {
@@ -34,22 +35,30 @@ const DashboardScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [todayCount, setTodayCount] = useState(0);
   const [username, setUsername] = useState('user');
+  const [monthlyCap, setMonthlyCap] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
-    const [exp, cats, total, wallet, lastTotal, name] = await Promise.all([
+    const [exp, cats, total, wallet, lastTotal, name, budget] = await Promise.all([
       getExpenses(),
       getCategories(),
       getMonthlyTotal(),
       getWalletTotal(),
       getLastMonthTotal(),
       getUsername(),
+      getBudget(),
     ]);
     const dayKey = (dateStr: string) => {
       const d = new Date(dateStr);
       return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
     };
     const todayKey = dayKey(new Date().toISOString());
-    const todays = exp.filter((e) => dayKey(e.date) === todayKey);
+    const todays = exp.filter(
+      (e) =>
+        dayKey(e.date) === todayKey &&
+        (e.type ?? 'expense') === 'expense' &&
+        e.category !== 'Borrow' &&
+        e.category !== 'Credit',
+    );
     setTodayCount(todays.length);
     setExpenses(exp);
     setCategories(cats);
@@ -57,6 +66,7 @@ const DashboardScreen: React.FC = () => {
     setWalletTotal(wallet);
     setLastMonthTotal(lastTotal);
     setUsername(name);
+    setMonthlyCap(budget.monthlyCap);
   }, []);
 
   useFocusEffect(
@@ -83,7 +93,7 @@ const DashboardScreen: React.FC = () => {
     const sorted = [...expenses].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-    return groupExpensesByDay(sorted.slice(0, 5), getDateLabel);
+    return groupExpensesByDay(sorted.slice(0, 7), getDateLabel);
   }, [expenses, getDateLabel]);
 
   const getCategoryDetails = useCallback(
@@ -92,7 +102,6 @@ const DashboardScreen: React.FC = () => {
         categories.find((c) => c.name === name) || {
           name,
           icon: "help-outline",
-          color: COLORS.textMuted,
         }
       );
     },
@@ -122,6 +131,7 @@ const DashboardScreen: React.FC = () => {
           recentCount={todayCount}
           walletTotal={walletTotal}
           lastMonthTotal={lastMonthTotal}
+          monthlyCap={monthlyCap}
         />
 
         <Text style={styles.sectionHeader}>Recent Transactions</Text>
@@ -174,9 +184,8 @@ const DashboardScreen: React.FC = () => {
                     <ExpenseCard
                       key={expense.id}
                       expense={expense}
-                      categoryColor={cat.color}
                       categoryIcon={cat.icon}
-                      categoryLabel={getCategoryLabel(expense.category, categories)}
+                      categoryLabel={getCategoryLabel(expense.category)}
                       onPress={() => router.push(`/expense/detail/${expense.id}`)}
                     />
                   );

@@ -35,35 +35,19 @@ const PRESET_ICONS: IconName[] = [
   'more-horiz',
 ];
 
-const PRESET_COLORS = [
-  '#111111',
-  '#3F3F46',
-  '#5F5F5F',
-  '#7F7F7F',
-  '#8E8E8E',
-  '#6B4F3A',
-  '#3F84C5',
-  '#8C2F2F',
-  '#2E7D32',
-  '#B8860B',
-];
-
-type FormMode = 'add-main' | 'add-sub' | 'edit';
+type FormMode = 'add' | 'edit';
 
 interface FormState {
   mode: FormMode;
   name: string;
   icon: IconName;
-  color: string;
-  parentId?: string;
   editingId?: string;
 }
 
 const emptyForm = (): FormState => ({
-  mode: 'add-main',
+  mode: 'add',
   name: '',
   icon: 'more-horiz',
-  color: PRESET_COLORS[0],
 });
 
 const CategoryScreen: React.FC = () => {
@@ -81,10 +65,8 @@ const CategoryScreen: React.FC = () => {
     }, [load]),
   );
 
-  const mains = categories.filter(c => !c.parentId);
-
-  const startAddMain = () => {
-    setForm({...emptyForm(), mode: 'add-main'});
+  const startAdd = () => {
+    setForm({...emptyForm(), mode: 'add'});
     setFormOpen(true);
   };
 
@@ -93,9 +75,7 @@ const CategoryScreen: React.FC = () => {
       mode: 'edit',
       name: cat.name,
       icon: cat.icon,
-      color: cat.color,
       editingId: cat.id,
-      parentId: cat.parentId,
     });
     setFormOpen(true);
   };
@@ -109,16 +89,22 @@ const CategoryScreen: React.FC = () => {
         onPress: () => {
           showThemeAlert(
             'Delete Category',
-            cat.parentId
-              ? `Delete "${cat.name}"?`
-              : `Delete "${cat.name}" and all its subcategories?`,
+            `Delete "${cat.name}"?`,
             [
               {text: 'Cancel', style: 'cancel' as const},
               {
                 text: 'Delete',
                 style: 'destructive' as const,
                 onPress: async () => {
-                  await deleteCategory(cat.id);
+                  const count = await deleteCategory(cat.id);
+                  if (count > 0) {
+                    showThemeAlert(
+                      'Category in use',
+                      `"${cat.name}" is used by ${count} transaction${count === 1 ? '' : 's'}. Rename it instead of deleting.`,
+                    );
+                  } else if (count === -1) {
+                    showThemeAlert('Error', 'Could not delete the category. Try again.');
+                  }
                   await load();
                 },
               },
@@ -144,82 +130,62 @@ const CategoryScreen: React.FC = () => {
       return;
     }
 
+    let ok: boolean;
     if (form.mode === 'edit' && form.editingId) {
-      await updateCategory({
+      ok = await updateCategory({
         id: form.editingId,
         name,
         icon: form.icon,
-        color: form.color,
-        parentId: form.parentId,
       });
     } else {
-      await addCategory({
+      ok = await addCategory({
         id: generateId(),
         name,
         icon: form.icon,
-        color: form.color,
-        parentId: form.mode === 'add-sub' ? form.parentId : undefined,
       });
+    }
+    if (!ok) {
+      showThemeAlert('Error', 'Could not save the category. Try again.');
+      return;
     }
     setFormOpen(false);
     await load();
   };
 
-  const renderSubs = (parentId: string) =>
-    categories.filter(c => c.parentId === parentId).map(sub => (
-        <TouchableOpacity
-          key={sub.id}
-          style={styles.subRow}
-          activeOpacity={0.6}
-          onPress={() => handleRowPress(sub)}>
-          <View style={[styles.subIcon, {backgroundColor: sub.color + '18'}]}>
-            <MaterialIcons name={sub.icon} size={16} color={sub.color} />
-          </View>
-          <Text style={styles.subName} numberOfLines={1}>
-            {sub.name}
-          </Text>
-          <MaterialIcons name="chevron-right" size={20} color={COLORS.textMuted} />
-        </TouchableOpacity>
-      ));
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {mains.length === 0 ? (
+      {categories.length === 0 && (
         <View style={styles.emptyBox}>
           <MaterialIcons name="category" size={40} color={COLORS.textMuted} />
           <Text style={styles.emptyText}>No categories yet.</Text>
-          <Text style={styles.emptyHint}>Add a main category to get started.</Text>
+          <Text style={styles.emptyHint}>Tap the + chip to add a category.</Text>
         </View>
-      ) : (
-        mains.map(main => (
-          <View key={main.id} style={styles.card}>
-            <TouchableOpacity style={styles.mainRow} activeOpacity={0.6} onPress={() => handleRowPress(main)}>
-              <View style={[styles.mainIcon, {backgroundColor: main.color + '18'}]}>
-                <MaterialIcons name={main.icon} size={22} color={main.color} />
-              </View>
-              <View style={styles.mainText}>
-                <Text style={styles.mainName} numberOfLines={1}>
-                  {main.name}
-                </Text>
-                <Text style={styles.mainMeta}>
-                  {
-                    categories.filter(c => c.parentId === main.id).length > 0
-                      ? `${categories.filter(c => c.parentId === main.id).length} subcategories`
-                      : ''
-                  }
-                </Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
-            </TouchableOpacity>
-            {renderSubs(main.id)}
-          </View>
-        ))
       )}
-
-      <TouchableOpacity style={styles.addBtn} onPress={startAddMain}>
-        <MaterialIcons name="add" size={20} color={COLORS.white} />
-        <Text style={styles.addBtnText}>Add Main Category</Text>
-      </TouchableOpacity>
+      <View style={styles.grid}>
+        <TouchableOpacity
+          style={[styles.chip, styles.chipAdd]}
+          activeOpacity={0.7}
+          onPress={startAdd}>
+          <View style={[styles.chipIcon, styles.chipAddIcon]}>
+            <MaterialIcons name="add" size={22} color={COLORS.textMuted} />
+          </View>
+          <Text style={styles.chipName}>New</Text>
+        </TouchableOpacity>
+        {categories.map(cat => (
+          <TouchableOpacity
+            key={cat.id}
+            style={styles.chip}
+            activeOpacity={0.7}
+            onPress={() => handleRowPress(cat)}>
+            <View style={styles.chipIcon}>
+              <MaterialIcons name={cat.icon} size={22} color={COLORS.primary} />
+            </View>
+            <Text style={styles.chipName} numberOfLines={1}>
+              {cat.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <Modal
         visible={formOpen}
@@ -229,11 +195,7 @@ const CategoryScreen: React.FC = () => {
         <TouchableOpacity style={styles.formBackdrop} activeOpacity={1} onPress={() => setFormOpen(false)}>
           <View style={styles.formSheet}>
             <Text style={styles.formTitle}>
-              {form.mode === 'edit'
-                ? 'Rename Category'
-                : form.mode === 'add-sub'
-                  ? 'Add Subcategory'
-                  : 'Add Main Category'}
+              {form.mode === 'edit' ? 'Rename Category' : 'Add Category'}
             </Text>
 
             <TextInput
@@ -252,24 +214,9 @@ const CategoryScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={icon}
-                    style={[styles.iconOption, active && {borderColor: form.color, backgroundColor: form.color + '10'}]}
+                    style={[styles.iconOption, active && {borderColor: COLORS.primary, backgroundColor: COLORS.primary + '10'}]}
                     onPress={() => setForm(f => ({...f, icon}))}>
-                    <MaterialIcons name={icon} size={20} color={active ? form.color : COLORS.textMuted} />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={styles.fieldLabel}>Color</Text>
-            <View style={styles.colorRow}>
-              {PRESET_COLORS.map(color => {
-                const active = form.color === color;
-                return (
-                  <TouchableOpacity
-                    key={color}
-                    style={[styles.colorOption, {backgroundColor: color}, active && styles.colorActive]}
-                    onPress={() => setForm(f => ({...f, color}))}>
-                    {active && <MaterialIcons name="check" size={14} color={COLORS.white} />}
+                    <MaterialIcons name={icon} size={20} color={active ? COLORS.primary : COLORS.textMuted} />
                   </TouchableOpacity>
                 );
               })}
@@ -292,67 +239,56 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    padding: 16,
+    paddingTop: 16,
+    paddingHorizontal: 16,
     paddingBottom: 40,
   },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 18,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-    overflow: 'hidden',
-  },
-  mainRow: {
+  grid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  mainIcon: {
+  chip: {
+    width: '23%',
+    flexGrow: 0,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 6,
+  },
+  chipIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.text + '12',
   },
-  mainText: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  mainName: {
-    fontSize: 15,
+  chipName: {
+    fontSize: 10,
     fontWeight: '600',
-    color: COLORS.text,
-  },
-  mainMeta: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  subRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  subIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subName: {
-    flex: 1,
-    fontSize: 14,
     color: COLORS.textLight,
-    marginLeft: 10,
+    textAlign: 'center',
+    maxWidth: 68,
+  },
+  chipAdd: {
+    borderStyle: 'dashed',
+    borderColor: COLORS.border,
+    backgroundColor: 'transparent',
+  },
+  chipAddIcon: {
+    backgroundColor: '#F1F1F4',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.border,
   },
   emptyBox: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 24,
   },
   emptyText: {
     fontSize: 16,
@@ -364,21 +300,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textMuted,
     marginTop: 4,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    borderRadius: 18,
-    paddingVertical: 14,
-    marginTop: 8,
-  },
-  addBtnText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 6,
   },
   formBackdrop: {
     flex: 1,
@@ -431,23 +352,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
     backgroundColor: COLORS.card,
-  },
-  colorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  colorOption: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
-    marginBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  colorActive: {
-    borderWidth: 2,
-    borderColor: COLORS.text,
   },
   saveBtn: {
     flexDirection: 'row',

@@ -1,9 +1,19 @@
+import {CURRENCIES, CurrencyOption} from './constants';
+
+let activeCurrency: CurrencyOption = CURRENCIES[0];
+
+export const setActiveCurrency = (code: string): void => {
+  activeCurrency = CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
+};
+
+export const getActiveCurrency = (): CurrencyOption => activeCurrency;
+
 export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
 export const formatCurrency = (amount: number): string => {
-  return `NPR ${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+  return `${activeCurrency.symbol} ${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 };
 
 export const formatDate = (dateStr: string): string => {
@@ -16,19 +26,7 @@ export const formatDate = (dateStr: string): string => {
   return date.toLocaleDateString('en-US', options);
 };
 
-export const getCategoryLabel = (
-  name: string,
-  categories: {id: string; name: string; parentId?: string}[],
-): string => {
-  const cat = categories.find(c => c.name === name);
-  if (cat?.parentId) {
-    const parent = categories.find(c => c.id === cat.parentId);
-    if (parent && parent.name !== name) {
-      return `${parent.name} / ${name}`;
-    }
-  }
-  return name;
-};
+export const getCategoryLabel = (name: string): string => name;
 
 export interface DayGroup<T> {
   label: string;

@@ -38,6 +38,9 @@ yarn-error.*
 
 example
 
+# backups are personal data, not app source
+suma-backup-*.json
+
 # generated native folders
 /ios
 /android

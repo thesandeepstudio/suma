@@ -153,6 +153,7 @@ export default function TabLayout() {
         name="wallet"
         options={{
           title: 'Wallet',
+          headerShown: false,
           tabBarIcon: ({color, focused}) => (
             <AnimatedTabIcon
               name="wallet"
@@ -166,6 +167,7 @@ export default function TabLayout() {
         name="me"
         options={{
           title: 'Settings',
+          headerShown: false,
           tabBarIcon: ({color, focused}) => (
             <AnimatedTabIcon name="settings" color={color} focused={focused} />
           ),

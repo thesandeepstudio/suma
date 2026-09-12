@@ -19,8 +19,11 @@ export interface Category {
   id: string;
   name: string;
   icon: IconName;
-  color: string;
-  parentId?: string;
+}
+
+export interface Budget {
+  monthlyCap: number | null;
+  categoryCaps: Record<string, number>;
 }
 
 export interface Wallet {

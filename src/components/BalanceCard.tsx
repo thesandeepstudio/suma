@@ -3,12 +3,14 @@ import {View, Text, StyleSheet} from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
 import {COLORS} from '../utils/constants';
 import {formatCurrency} from '../utils/helpers';
+import BudgetBar from './BudgetBar';
 
 interface Props {
   monthlyTotal: number;
   recentCount: number;
   walletTotal: number;
   lastMonthTotal: number;
+  monthlyCap?: number | null;
 }
 
 const BalanceCard: React.FC<Props> = ({
@@ -16,18 +18,21 @@ const BalanceCard: React.FC<Props> = ({
   recentCount,
   walletTotal,
   lastMonthTotal,
-  }) => {
+  monthlyCap,
+}) => {
   const day = new Date().getDate();
   const pctChange =
     lastMonthTotal > 0 ? ((monthlyTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
+  const roundedPct = Math.round(pctChange);
   const trendIcon =
-    pctChange > 1 ? 'trending-up' : pctChange < 1 ? 'trending-down' : 'trending-flat';
+    roundedPct > 1 ? 'trending-up' : roundedPct < -1 ? 'trending-down' : 'trending-flat';
   const trendLabel =
-    pctChange > 1
-      ? `↑ ${Math.round(pctChange)}% vs last month`
-      : pctChange < 1
-        ? `↓ ${Math.abs(Math.round(pctChange))}% vs last month`
-        : 'same as last month';
+    roundedPct > 1
+      ? `↑ ${roundedPct}% vs last month`
+      : roundedPct < -1
+        ? `↓ ${Math.abs(roundedPct)}% vs last month`
+        : '~ same as last month';
+  const hasCap = typeof monthlyCap === 'number' && monthlyCap > 0;
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -38,6 +43,11 @@ const BalanceCard: React.FC<Props> = ({
         </View>
       </View>
       <Text style={styles.amount}>{formatCurrency(monthlyTotal)}</Text>
+      {hasCap ? (
+        <View style={styles.budgetWrap}>
+          <BudgetBar spent={monthlyTotal} cap={monthlyCap!} />
+        </View>
+      ) : null}
       <Text style={styles.subtext}>{recentCount} transactions today</Text>
       <View style={styles.row}>
         <View style={styles.statBox}>
@@ -107,6 +117,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
     marginTop: 4,
+  },
+  budgetWrap: {
+    marginTop: 12,
   },
   row: {
     flexDirection: 'row',

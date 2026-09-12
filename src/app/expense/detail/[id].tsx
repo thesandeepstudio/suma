@@ -45,7 +45,11 @@ export default function TransactionDetailScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deleteExpense(expense.id);
+          const ok = await deleteExpense(expense.id);
+          if (!ok) {
+            showThemeAlert('Error', 'Could not delete the record. Try again.');
+            return;
+          }
           router.back();
         },
       },
@@ -125,12 +129,12 @@ export default function TransactionDetailScreen() {
             <MaterialIcons
               name={category?.icon || 'help-outline'}
               size={18}
-              color={category?.color || COLORS.textMuted}
+              color={COLORS.primary}
             />
           </View>
           <Text style={styles.rowLabel}>Category</Text>
-          <Text style={[styles.rowValue, {color: category?.color || COLORS.text}]}>
-            {getCategoryLabel(expense.category, categories) || '—'}
+          <Text style={[styles.rowValue, {color: COLORS.text}]}>
+            {getCategoryLabel(expense.category) || '—'}
           </Text>
         </View>
         {fromWallet && (

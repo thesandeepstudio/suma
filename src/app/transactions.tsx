@@ -1,9 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  SectionList,
   RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -19,6 +19,13 @@ import {
   groupExpensesByDay,
 } from "../utils/helpers";
 import { getExpenses, getCategories } from "../utils/storage";
+
+interface DaySection {
+  title: string;
+  expense: number;
+  income: number;
+  data: Expense[];
+}
 
 const TransactionsScreen: React.FC = () => {
   const router = useRouter();
@@ -49,7 +56,6 @@ const TransactionsScreen: React.FC = () => {
       categories.find((c) => c.name === name) || {
         name,
         icon: "help-outline",
-        color: COLORS.textMuted,
       },
     [categories],
   );
@@ -62,11 +68,65 @@ const TransactionsScreen: React.FC = () => {
     return `${d.toLocaleDateString("en-US", { month: "short" })} ${d.getDate()}`;
   }, []);
 
-  const grouped = groupExpensesByDay(expenses, getDateLabel);
+  const sections: DaySection[] = useMemo(() => {
+    return groupExpensesByDay(expenses, getDateLabel).map((g) => ({
+      title: g.label,
+      expense: g.expense,
+      income: g.income,
+      data: g.items,
+    }));
+  }, [expenses, getDateLabel]);
+
+  const renderHeader = useCallback(
+    ({ section }: { section: DaySection }) => (
+      <View style={styles.dayHeader}>
+        <Text style={styles.dayLabel}>{section.title}</Text>
+        <View style={styles.dayTotals}>
+          {section.expense > 0 ? (
+            <View style={styles.dayStat}>
+              <MaterialIcons name="arrow-downward" size={16} color={COLORS.danger} />
+              <Text style={[styles.dayAmount, styles.expenseAmount]}>
+                {formatCurrency(section.expense)}
+              </Text>
+            </View>
+          ) : null}
+          {section.income > 0 ? (
+            <View style={styles.dayStat}>
+              <MaterialIcons name="arrow-upward" size={16} color={COLORS.success} />
+              <Text style={[styles.dayAmount, styles.incomeAmount]}>
+                {formatCurrency(section.income)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    ),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: Expense }) => {
+      const cat = getCategoryDetails(item.category);
+      return (
+        <ExpenseCard
+          expense={item}
+          categoryIcon={cat.icon}
+          categoryLabel={getCategoryLabel(item.category)}
+          onPress={() => router.push(`/expense/detail/${item.id}`)}
+        />
+      );
+    },
+    [getCategoryDetails, router],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={renderHeader}
+        stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -75,53 +135,13 @@ const TransactionsScreen: React.FC = () => {
             colors={[COLORS.primary]}
           />
         }
-      >
-        {grouped.length === 0 ? (
+        ListEmptyComponent={
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>No transactions yet.</Text>
           </View>
-        ) : (
-          grouped.map((group) => (
-            <View key={group.label}>
-              <View style={styles.dayHeader}>
-                <Text style={styles.dayLabel}>{group.label}</Text>
-                <View style={styles.dayTotals}>
-                  {group.expense > 0 ? (
-                    <View style={styles.dayStat}>
-                      <MaterialIcons name="arrow-downward" size={16} color={COLORS.danger} />
-                      <Text style={[styles.dayAmount, styles.expenseAmount]}>
-                        {formatCurrency(group.expense)}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {group.income > 0 ? (
-                    <View style={styles.dayStat}>
-                      <MaterialIcons name="arrow-upward" size={16} color={COLORS.success} />
-                      <Text style={[styles.dayAmount, styles.incomeAmount]}>
-                        {formatCurrency(group.income)}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-              {group.items.map((expense) => {
-                const cat = getCategoryDetails(expense.category);
-                return (
-                  <ExpenseCard
-                    key={expense.id}
-                    expense={expense}
-                    categoryColor={cat.color}
-                    categoryIcon={cat.icon}
-                    categoryLabel={getCategoryLabel(expense.category, categories)}
-                    onPress={() => router.push(`/expense/detail/${expense.id}`)}
-                  />
-                );
-              })}
-            </View>
-          ))
-        )}
-        <View style={{ height: 40 }} />
-      </ScrollView>
+        }
+        ListFooterComponent={<View style={{ height: 40 }} />}
+      />
     </SafeAreaView>
   );
 };

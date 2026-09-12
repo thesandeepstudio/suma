@@ -31,7 +31,18 @@ export default function EditWalletScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deleteWallet(wallet.id);
+          const count = await deleteWallet(wallet.id);
+          if (count > 0) {
+            showThemeAlert(
+              'Account in use',
+              `"${wallet.name}" is referenced by ${count} transaction${count === 1 ? '' : 's'}. You can't delete an account that has records.`,
+            );
+            return;
+          }
+          if (count === -1) {
+            showThemeAlert('Error', 'Could not delete the account. Try again.');
+            return;
+          }
           router.back();
         },
       },

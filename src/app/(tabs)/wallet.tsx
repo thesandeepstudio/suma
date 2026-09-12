@@ -7,12 +7,13 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import WalletCard from "../../components/WalletCard";
 import { Wallet } from "../../types";
 import { COLORS } from "../../utils/constants";
-import { getWallets, getWalletTotal, getDebt } from "../../utils/storage";
+import { getWallets, getWalletTotal, getDebt, getReceivable } from "../../utils/storage";
 import { formatCurrency } from "../../utils/helpers";
 
 const WalletScreen: React.FC = () => {
@@ -20,17 +21,20 @@ const WalletScreen: React.FC = () => {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [debt, setDebt] = useState(0);
+  const [receivable, setReceivable] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [list, total, debtValue] = await Promise.all([
+    const [list, total, debtValue, receivableValue] = await Promise.all([
       getWallets(),
       getWalletTotal(),
       getDebt(),
+      getReceivable(),
     ]);
     setWallets(list);
     setTotalBalance(total);
     setDebt(debtValue);
+    setReceivable(receivableValue);
   }, []);
 
   useFocusEffect(
@@ -57,7 +61,7 @@ const WalletScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -69,6 +73,10 @@ const WalletScreen: React.FC = () => {
           />
         }
       >
+        <View style={styles.header}>
+          <Text style={styles.heading}>Wallet</Text>
+          <Text style={styles.subheading}>Your accounts</Text>
+        </View>
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Balance</Text>
           <Text style={styles.totalAmount}>
@@ -82,6 +90,13 @@ const WalletScreen: React.FC = () => {
               <Text style={styles.totalStatLabel}>Net Assets</Text>
               <Text style={styles.totalStatValue}>
                 {formatCurrency(totalBalance)}
+              </Text>
+            </View>
+            <View style={styles.totalDivider} />
+            <View style={styles.totalStat}>
+              <Text style={styles.totalStatLabel}>Receivable</Text>
+              <Text style={styles.totalStatValue}>
+                {formatCurrency(receivable)}
               </Text>
             </View>
             <View style={styles.totalDivider} />
@@ -132,7 +147,7 @@ const WalletScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -143,6 +158,21 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 100,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  subheading: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 2,
   },
   totalCard: {
     backgroundColor: COLORS.primary,

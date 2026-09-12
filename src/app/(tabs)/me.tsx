@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,15 @@ import {
   ActivityIndicator,
   TextInput,
   Linking,
+  Modal,
+  FlatList,
 } from 'react-native';
 import {MaterialIcons} from '@expo/vector-icons';
 import {useRouter, useFocusEffect} from 'expo-router';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {File, Paths} from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import * as DocumentPicker from 'expo-document-picker';
-import {COLORS} from '../../utils/constants';
+import {COLORS, CURRENCIES, CurrencyOption} from '../../utils/constants';
 import {
   getAllData,
   restoreAllData,
@@ -23,20 +24,27 @@ import {
   getUsername,
   setUsername as saveUsername,
   clearAllData,
+  getCurrency,
+  setCurrency as saveCurrency,
 } from '../../utils/storage';
+import {setActiveCurrency} from '../../utils/helpers';
 import {showThemeAlert} from '../../components/ThemeAlert';
 
 const SettingsScreen: React.FC = () => {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [username, setUsername] = useState('user');
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('user');
+  const [currencyCode, setCurrencyCode] = useState('NPR');
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   const loadData = useCallback(async () => {
-    const name = await getUsername();
+    const [name, currency] = await Promise.all([getUsername(), getCurrency()]);
     setUsername(name);
     setNameInput(name);
+    setCurrencyCode(currency);
   }, []);
 
   useFocusEffect(
@@ -48,7 +56,11 @@ const SettingsScreen: React.FC = () => {
   const handleSaveName = async () => {
     const trimmed = nameInput.trim();
     if (!trimmed) return;
-    await saveUsername(trimmed);
+    const ok = await saveUsername(trimmed);
+    if (!ok) {
+      showThemeAlert('Error', 'Could not save the name. Try again.');
+      return;
+    }
     setUsername(trimmed);
     setEditingName(false);
   };
@@ -93,18 +105,25 @@ const SettingsScreen: React.FC = () => {
 
   const handleImport = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const file = new File(result.assets[0].uri);
+      const res = await File.pickFileAsync();
+      if (res.canceled || !res.result) return;
+      const file = res.result;
       const text = await file.text();
       let parsed: BackupData;
       try {
         parsed = JSON.parse(text);
       } catch {
         showThemeAlert('Import failed', 'The selected file is not valid JSON.');
+        return;
+      }
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        !Array.isArray(parsed.transactions) ||
+        !Array.isArray(parsed.categories) ||
+        !Array.isArray(parsed.wallets)
+      ) {
+        showThemeAlert('Import failed', 'The selected file is not a SUMA backup.');
         return;
       }
       showThemeAlert(
@@ -135,8 +154,12 @@ const SettingsScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             setBusy('Clearing...');
-            await clearAllData();
+            const ok = await clearAllData();
             setBusy(null);
+            if (!ok) {
+              showThemeAlert('Error', 'Could not clear the data. Try again.');
+              return;
+            }
             loadData();
             showThemeAlert('Done', 'All data has been cleared.');
           },
@@ -147,8 +170,14 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <Text style={styles.heading}>Settings</Text>
+          <Text style={styles.subheading}>Profile & data</Text>
+        </View>
+        <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <MaterialIcons name="person" size={40} color={COLORS.white} />
           </View>
@@ -175,10 +204,8 @@ const SettingsScreen: React.FC = () => {
               style={styles.nameRow}
               onPress={() => setEditingName(true)}>
               <Text style={styles.title}>{username}</Text>
-              <MaterialIcons name="edit" size={16} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
-          <Text style={styles.subtitle}>Settings</Text>
         </View>
 
         {busy ? (
@@ -190,7 +217,13 @@ const SettingsScreen: React.FC = () => {
 
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
-          <View style={styles.infoRow}>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
+            onPress={() => {
+              setEditingName(true);
+              scrollRef.current?.scrollTo({y: 0, animated: true});
+            }}>
             <View style={[styles.rowIcon, {backgroundColor: COLORS.primary + '12'}]}>
               <MaterialIcons name="person" size={22} color={COLORS.primary} />
             </View>
@@ -198,17 +231,24 @@ const SettingsScreen: React.FC = () => {
               <Text style={styles.rowName}>Username</Text>
               <Text style={styles.rowValue}>{username}</Text>
             </View>
-          </View>
+            <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
+          </TouchableOpacity>
           <View style={styles.divider} />
-          <View style={styles.infoRow}>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
+            onPress={() => setShowCurrencyPicker(true)}>
             <View style={[styles.rowIcon, {backgroundColor: COLORS.primary + '12'}]}>
               <MaterialIcons name="attach-money" size={22} color={COLORS.primary} />
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowName}>Currency</Text>
-              <Text style={styles.rowValue}>NPR (Nepalese Rupee)</Text>
+              <Text style={styles.rowValue}>
+                {CURRENCIES.find(c => c.code === currencyCode)?.name ?? currencyCode}
+              </Text>
             </View>
-          </View>
+            <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.sectionTitle}>Manage</Text>
@@ -222,7 +262,21 @@ const SettingsScreen: React.FC = () => {
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowName}>Categories</Text>
-              <Text style={styles.rowDesc}>Manage main and subcategories</Text>
+              <Text style={styles.rowDesc}>Manage your categories</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.6}
+            onPress={() => router.push('/budget')}>
+            <View style={[styles.rowIcon, {backgroundColor: COLORS.primary + '12'}]}>
+              <MaterialIcons name="pie-chart" size={22} color={COLORS.primary} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowName}>Budgets</Text>
+              <Text style={styles.rowDesc}>Set monthly and category limits</Text>
             </View>
             <MaterialIcons name="chevron-right" size={22} color={COLORS.textMuted} />
           </TouchableOpacity>
@@ -306,7 +360,7 @@ const SettingsScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.row}
             activeOpacity={0.6}
-            onPress={() => Linking.openURL('https://github.com/anomalyco/opencode/issues')}>
+            onPress={() => Linking.openURL('https://github.com/thesandeepstudio/suma/issues')}>
             <View style={[styles.rowIcon, {backgroundColor: COLORS.primary + '12'}]}>
               <MaterialIcons name="bug-report" size={22} color={COLORS.primary} />
             </View>
@@ -320,6 +374,62 @@ const SettingsScreen: React.FC = () => {
 
         <Text style={styles.footerText}>Made with care for your finances</Text>
       </ScrollView>
+
+      <Modal
+        visible={showCurrencyPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCurrencyPicker(false)}>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowCurrencyPicker(false)}>
+          <View style={styles.sheet}>
+            <TouchableOpacity activeOpacity={1} style={{width: '100%'}}>
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Select Currency</Text>
+                <TouchableOpacity onPress={() => setShowCurrencyPicker(false)}>
+                  <MaterialIcons name="close" size={24} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={CURRENCIES}
+                keyExtractor={item => item.code}
+                showsVerticalScrollIndicator={false}
+                renderItem={({item}: {item: CurrencyOption}) => {
+                  const selected = item.code === currencyCode;
+                  return (
+                    <TouchableOpacity
+                      style={styles.currencyRow}
+                      activeOpacity={0.6}
+                      onPress={async () => {
+                        setCurrencyCode(item.code);
+                        setActiveCurrency(item.code);
+                        await saveCurrency(item.code);
+                        setShowCurrencyPicker(false);
+                      }}>
+                      <View style={styles.currencySymbolBox}>
+                        <Text style={styles.currencySymbol}>{item.symbol}</Text>
+                      </View>
+                      <View style={styles.currencyInfo}>
+                        <Text style={styles.currencyCode}>{item.code}</Text>
+                        <Text style={styles.currencyName}>{item.name}</Text>
+                      </View>
+                      {selected && (
+                        <MaterialIcons
+                          name="check"
+                          size={22}
+                          color={COLORS.primary}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -330,6 +440,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  subheading: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  profileCard: {
     alignItems: 'center',
     paddingVertical: 24,
   },
@@ -375,11 +500,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginTop: 4,
   },
   card: {
     backgroundColor: COLORS.card,
@@ -467,6 +587,64 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 32,
     marginBottom: 40,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 24,
+    maxHeight: '70%',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  currencySymbolBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  currencySymbol: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  currencyInfo: {
+    flex: 1,
+  },
+  currencyCode: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  currencyName: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 1,
   },
 });
 
